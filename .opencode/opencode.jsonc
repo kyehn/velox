@@ -1,0 +1,118 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "share": "disabled",
+  "autoupdate": false,
+  "model": "opencode/deepseek-v4-flash-free",
+  "instructions": ["AGENTS.md"],
+  "formatter": {
+    "nixfmt": {
+      "command": ["nixfmt", "$FILE"],
+      "extensions": [".nix"]
+    },
+    "shfmt": {
+      "command": ["shfmt", "-w", "$FILE"],
+      "extensions": [".sh", ".bash", ".envrc"]
+    },
+    "taplo": {
+      "command": ["taplo", "format", "$FILE"],
+      "extensions": [".toml"]
+    },
+    "yamlfmt": {
+      "command": ["yamlfmt", "$FILE"],
+      "extensions": [".yaml", ".yml"]
+    },
+    "rustfmt": {
+      "command": ["rustfmt", "--config", "skip_children=true", "$FILE"],
+      "extensions": [".rs"]
+    }
+  },
+  "permission": {
+    "read": "allow",
+    "edit": "allow",
+    "glob": "allow",
+    "grep": "allow",
+    "list": "allow",
+    "bash": "allow",
+    "task": "allow",
+    "webfetch": "allow",
+    "websearch": "allow",
+    "todowrite": "allow",
+    "question": "allow"
+  },
+  "mcp": {
+    "mcp-nixos": {
+      "enabled": true,
+      "type": "local",
+      "command": ["mcp-nixos"]
+    },
+    "mcp-server-filesystem": {
+      "enabled": true,
+      "type": "local",
+      "command": ["mcp-server-filesystem", "."]
+    },
+    "github": {
+      "type": "local",
+      "command": ["github-mcp-server"],
+      "enabled": true,
+      "environment": {
+        "GITHUB_PERSONAL_ACCESS_TOKEN": "{env:GH_TOKEN}"
+      }
+    }
+  },
+  "agent": {
+    "torvox-rust": {
+      "description": "Rust core engine development agent",
+      "mode": "subagent",
+      "prompt": "Strictly follow torvox-core -> torvox-terminal -> torvox-renderer dependency direction. Every public function needs unit tests. cargo clippy --deny warnings. PTY uses nix 0.31 crate (not portable-pty). Serialization uses postcard 1.1 (not bincode). wgpu version is v29. cargo-ndk version is v4."
+    },
+    "torvox-kotlin": {
+      "description": "Kotlin Android UI development agent",
+      "mode": "subagent",
+      "prompt": "Jetpack Compose BOM 2026.05.01 + Material 3. SurfaceView hosts Rust wgpu 29 Surface (Vulkan backend does not use DisplayHandle). Hilt DI. ktfmt formatting. Foreground service type FOREGROUND_SERVICE_SPECIAL_USE. Kotlin 2.3.21+. AGP 9.2. rust-android-gradle 0.9.6."
+    },
+    "torvox-docs": {
+      "description": "Documentation writing and updating agent",
+      "mode": "subagent",
+      "prompt": "Simplified Chinese. No license statements. AGENTS.md is in repo root (not in docs/). ADR numbering is sequential. Tech versions must match ARCHITECTURE.md version lock table."
+    },
+    "torvox-ci": {
+      "description": "CI/CD and build system agent",
+      "mode": "subagent",
+      "prompt": "GitHub Actions workflows. cargo-nextest replaces cargo test. cargo-ndk v4 syntax. Nightly fuzzing. MIRI checks. cargo geiger checks. Quality gate script."
+    }
+  },
+  "command": {
+    "quality": {
+      "description": "Run Rust quality checks",
+      "template": "cargo fmt --check && cargo clippy --deny warnings && cargo nextest --workspace"
+    },
+    "quality-full": {
+      "description": "Run full quality gate including Android",
+      "template": "cargo fmt --check && cargo clippy --deny warnings && cargo nextest --workspace && cargo test --workspace -- proptest && cd android && ./gradlew lint && ./gradlew test"
+    },
+    "geiger": {
+      "description": "Check for unsafe code",
+      "template": "cargo geiger --all-features"
+    },
+    "miri": {
+      "description": "Run MIRI undefined behavior checks",
+      "template": "MIRIFLAGS='-Zmiri-strict-provenance' cargo miri test -p torvox-core && MIRIFLAGS='-Zmiri-strict-provenance' cargo miri test -p torvox-terminal"
+    },
+    "fuzz": {
+      "description": "Run fuzz targets for 1 hour each",
+      "template": "cargo fuzz run fuzz_vt_parser --fuzz-dir torvox-fuzz -- -max_total_time=3600 && cargo fuzz run fuzz_osc_parse --fuzz-dir torvox-fuzz -- -max_total_time=3600 && cargo fuzz run fuzz_grid_resize --fuzz-dir torvox-fuzz -- -max_total_time=3600"
+    },
+    "android-debug": {
+      "description": "Build Android debug APK",
+      "template": "cd android && ./gradlew assembleDebug"
+    },
+    "android-test": {
+      "description": "Run Android unit tests",
+      "template": "cd android && ./gradlew test"
+    },
+    "android-install": {
+      "description": "Install debug APK to device",
+      "template": "adb install -r android/app/build/outputs/apk/debug/app-debug.apk"
+    }
+  }
+}
