@@ -101,8 +101,8 @@ Strong success criteria let you loop independently. Weak criteria ("make it work
 
 ## 当前状态
 
-- **阶段**: 0 (基础设施) — Workspace 脚手架, Android 骨架, CI。
-- **下一步**: P0.1 Rust Workspace 脚手架
+- **阶段**: 0→1 (基础设施→终端引擎) — P0.1 完成, P0.2 核心类型完成
+- **下一步**: P0.3 Android 外壳
 
 ## 关键约束
 
@@ -135,13 +135,36 @@ Strong success criteria let you loop independently. Weak criteria ("make it work
 ## 构建命令
 
 ```bash
-cargo build                              # Debug 构建
-cargo nextest --workspace                # 全部测试
-cargo clippy --deny warnings             # 零警告
-./scripts/quality-gate.sh                # 质量门 (全量)
+# Nix 开发环境 (推荐)
+nix develop                    # 进入 devshell
+nix develop --command cargo build --workspace
+
+# 直接构建 (需已安装 Rust stable + cargo-nextest)
+cargo build                    # Debug 构建
+cargo nextest --workspace      # 全部测试
+cargo clippy -- -D warnings    # 零警告
+./scripts/quality-gate.sh      # 质量门 (全量)
 ```
 
 完整命令见 `docs/DEVELOPMENT.md`。
+
+## Nix DevShell
+
+项目包含 `flake.nix`, 提供完整开发环境:
+
+| 工具 | 版本 |
+|------|------|
+| Rust (fenix stable) | 1.95 |
+| cargo-nextest | 0.9.136 |
+| cargo-fuzz | 0.13 |
+| cargo-geiger | 0.13 |
+| cargo-audit | 0.22 |
+| rust-analyzer | latest |
+
+```bash
+nix develop                           # 进入 shell
+nix develop --command cargo nextest   # 直接运行
+```
 
 ## 约定
 
