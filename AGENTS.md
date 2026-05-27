@@ -197,8 +197,8 @@ nix develop --command cargo nextest # 直接运行
 
 | 约定 | 规则 |
 |------|------|
-| Kotlin | 2.3.21+, Compose BOM 2026.05.01 |
-| DI | Hilt |
+| Kotlin | 2.3.21+, Compose BOM 2026.05.00 |
+| DI | Hilt 2.59.2 (需 AGP 9.0+) |
 | 架构 | MVVM with StateFlow/SharedFlow |
 | UI | Jetpack Compose, Material 3 |
 | 命名 | 函数/变量 `camelCase`, 类 `PascalCase` |
