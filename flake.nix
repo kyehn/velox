@@ -44,9 +44,15 @@
             "cargo"
             "clippy"
             "rust-src"
-            "rust-std"
             "rustc"
             "rustfmt"
+          ];
+
+          rustAndroidTargets = fenixPkgs.targets;
+          rustToolchainAndroid = fenixPkgs.combine [
+            rustToolchain
+            rustAndroidTargets.aarch64-linux-android.stable.rust-std
+            rustAndroidTargets.x86_64-linux-android.stable.rust-std
           ];
 
           androidSdkPkgs = pkgs'.androidenv.composeAndroidPackages.override { licenseAccepted = true; } {
@@ -72,11 +78,12 @@
           ];
 
           rustDeps = [
-            rustToolchain
+            rustToolchainAndroid
             pkgs.cargo-nextest
             pkgs.cargo-fuzz
             pkgs.cargo-geiger
             pkgs.cargo-audit
+            pkgs.cargo-ndk
             pkgs.rust-analyzer
           ];
 

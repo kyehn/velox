@@ -17,20 +17,13 @@ fi
 
 echo "=== Cross-compiling torvox-gui-android for Android ==="
 
-TARGETS=("aarch64-linux-android" "x86_64-linux-android")
-ABI_MAP=("arm64-v8a" "x86_64")
+ABIS=("arm64-v8a" "x86_64")
 
-for i in "${!TARGETS[@]}"; do
-	TARGET="${TARGETS[$i]}"
-	ABI="${ABI_MAP[$i]}"
-	echo "--- Building for $TARGET ($ABI) ---"
+cargo ndk -t arm64-v8a -t x86_64 -o "$TARGET_DIR" build --manifest-path "$CARGO_TOML" --profile dev
 
-	CARGO_TARGET_AARCH64_LINUX_ANDROID_LINKER="$ANDROID_NDK_ROOT/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android33-clang" \
-		CARGO_TARGET_X86_64_LINUX_ANDROID_LINKER="$ANDROID_NDK_ROOT/toolchains/llvm/prebuilt/linux-x86_64/bin/x86_64-linux-android33-clang" \
-		cargo ndk -t "$TARGET" -o "$TARGET_DIR" build --manifest-path "$CARGO_TOML" --profile dev
-
+for ABI in "${ABIS[@]}"; do
 	mkdir -p "$JNI_LIBS_DIR/$ABI"
-	cp "$TARGET_DIR/$TARGET/debug/libtorvox_core.so" "$JNI_LIBS_DIR/$ABI/"
+	cp "$TARGET_DIR/$ABI/libtorvox_core.so" "$JNI_LIBS_DIR/$ABI/"
 	echo "Copied to $JNI_LIBS_DIR/$ABI/libtorvox_core.so"
 done
 
