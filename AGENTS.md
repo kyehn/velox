@@ -160,10 +160,20 @@ cargo clippy -- -D warnings    # 零警告
 | cargo-geiger | 0.13 |
 | cargo-audit | 0.22 |
 | rust-analyzer | latest |
+| JDK (Temurin) | 25 |
+| Kotlin | nixpkgs latest |
+| Gradle | 9 |
+| ktfmt | nixpkgs latest |
+| ktlint | nixpkgs latest |
+| Android SDK | platform 36/33, build-tools 36.0.0, cmdLineTools 16.0 |
+| Android NDK | 29.0.14206865 (r29) |
+| android-tools | nixpkgs latest |
+
+使用 `flake-parts` (非 `flake-utils`)。Android SDK 需要 `allowUnfree`。
 
 ```bash
-nix develop                           # 进入 shell
-nix develop --command cargo nextest   # 直接运行
+nix develop # 进入 shell
+nix develop --command cargo nextest # 直接运行
 ```
 
 ## 约定
