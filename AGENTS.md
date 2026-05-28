@@ -168,7 +168,7 @@
 | `android/settings.gradle.kts` | 所有 Android 模块 | 新模块须在此注册 |
 | `torvox-core/src/cell.rs` | Cell, Attrs (10 个 SGR 字段), Color, DirtyMask | `no_std` 兼容 |
 | `torvox-core/src/config.rs` | TerminalConfig, Shell (SystemDefault/Custom(String)), RenderConfig, FontConfig | Shell 是 Clone 不是 Copy |
-| `torvox-core/src/grid.rs` | Grid, DirtyMask (u64 位标志) | DirtyMask 最多 64 行 |
+| `torvox-core/src/grid.rs` | Grid, DirtyMask (Vec<u64> 分区位标志) | 任意行数 |
 | `torvox-terminal/src/pty.rs` | PtyPair (spawn, resize, Read/Write, Drop) | 唯一允许 fork unsafe 的位置 |
 | `torvox-gui-android/src/bridge.rs` | UniFFI 导出类型 + TorvoxBridge | 唯一允许 setup_scaffolding!() 的位置 |
 | `torvox-gui-android/uniffi.toml` | Kotlin 包名配置 | package_name = "io.torvox.bridge" |
@@ -209,12 +209,12 @@
 
 | 组件 | 状态 | 说明 |
 |------|------|------|
-| `torvox-core` (9 模块) | **完整** | Cell, Attrs (10 SGR), Color, DirtyMask, Grid, Line, Config, Cursor, Selection, Unicode, Event, Ansi |
+| `torvox-core` (9 模块) | **完整** | Cell, Attrs (10 SGR), Color, DirtyMask (Vec<u64>), Grid, Line, Config, Cursor, Selection, Unicode, Event, Ansi |
 | `torvox-terminal/pty.rs` | **完整** | PtyPair: spawn, resize, read/write, Drop (增量终止), 非阻塞, 4 个 Linux 测试 |
 | `torvox-terminal/parser.rs` | **骨架** | VtParser 包装 vte::Parser, Perform trait 未实现 |
 | `torvox-terminal/terminal.rs` | **骨架** | TerminalState 含 Grid, 无状态机 |
 | `torvox-renderer` | **骨架** | GlyphAtlas (etagere) + 空 RenderPipeline |
-| `torvox-gui-android/bridge.rs` | **完整** | BridgeCell, TerminalConfig (50K scrollback), TerminalEvent, TerminalError (detail), TorvoxBridge |
+| `torvox-gui-android/bridge.rs` | **完整** | BridgeCell(+BridgeAttrs), Shell(Enum), TerminalConfig, TerminalEvent(6变体), TerminalError(detail), TorvoxBridge; From/Into 转换 core 类型 |
 | `torvox-exec` | **完整** | argv[0] 多调用二进制, 符号链接模式 + 直接调用模式 |
 | `torvox-fuzz` | **空** | 仅有 src/lib.rs 存根 |
 | `torvox-integration-tests` | **空** | 仅有 src/lib.rs 存根 |
@@ -294,8 +294,8 @@
 | # | 陷阱 | 教训 | 来源 |
 |---|------|------|------|
 | 1 | `Shell::Custom(u8)` 存储路径 | `u8` 太小，改为 `Shell::Custom(String)`。Shell 失去 `Copy`，TerminalConfig 也失去 `Copy` | P0.2 审计 |
-| 2 | `DirtyLine` 枚举 vs 位掩码 | ARCHITECTURE.md 指定位掩码。实现为 `DirtyMask(u64)`，每行一位，最多 64 行 | P0.2 审计 |
-| 3 | `thiserror 2.x` 与 `no_std` | `torvox-core` 是 `no_std`。`thiserror` 需要 `std` feature。方案: `thiserror` 设为 optional，`std` feature 启用它 | P0.2 审计 |
+| 2 | `DirtyLine` 枚举 vs 位掩码 | ARCHITECTURE.md 指定位掩码。实现为 `DirtyMask { partitions: Vec<u64> }`，每 u64 分区 64 行，支持任意行数 | P0.2 审计 → C4 → 本次修复 |
+| 3 | `thiserror 2.x` 与 `no_std` | `torvox-core` 是 `no_std`。`thiserror` 需要 `std` feature。方案: `thiserror` 设为 optional，`std` feature 启用它；`serde/postcard` 也需 `default-features = false` + `alloc` feature | P0.2 审计 |
 | 4 | UniFFI `setup_scaffolding!()` 多 crate 冲突 | UniFFI 库模式只允许一个 `setup_scaffolding!()`。跨 crate derive 导致 Kotlin 重复脚手架 | P0.6 |
 | 5 | UniFFI Error `message` 字段与 Kotlin 冲突 | Kotlin `Throwable.message` 与 UniFFI 生成的 `message` 字段冲突。改用 `detail` | P0.6 |
 | 6 | `libtorvox_core.so` 命名冲突 | lib 名与 `torvox-core` Rust crate 冲突。改为 `libtorvox_android.so` | C1 审计 |
@@ -308,6 +308,8 @@
 | 13 | `cargo-ndk` 仅支持 cdylib | `torvox-exec` 是 `[[bin]]`，不能通过 cargo-ndk 构建。用 `CARGO_TARGET_*_LINKER` 环境变量直接构建 | P0.5 |
 | 14 | `Result<T, String>` 不被 UniFFI 支持 | 必须使用 `uniffi::Error` 枚举 | P0.6 |
 | 15 | `uniffi::Error` 在 0.31 仅适用于枚举 | 不适用于结构体 | P0.6 |
+| 16 | `DirtyMask(Vec<u64>)` 不再是 `Copy` | 含 Vec 的类型不能 Copy。DirtyMask 失去 Copy，需 Clone。Grid 的 Clone 仍可用 | P0.2→本次修复 |
+| 17 | bridge.rs `shell: String` 无法表达 "系统默认" | 改为 `Shell` 枚举 (SystemDefault/Custom)，与 core 的 Shell 对齐，避免空字符串 hack | 本次修复 |
 
 ---
 
@@ -321,7 +323,7 @@ nix develop --command cargo build --workspace      # 直接构建
 # ── Rust 构建与测试 (需已安装 Rust stable + cargo-nextest) ──
 cargo build                                        # Debug 构建 (workspace)
 cargo build -p torvox-core                         # 单 crate 构建
-cargo build -p torvox-core --no-default-features   # no_std 构建 (验证无 std)
+cargo build -p torvox-core --no-default-features --features alloc # no_std 构建 (验证无 std)
 cargo nextest --workspace                          # 全部测试
 cargo nextest -p torvox-core                       # 单 crate 测试
 cargo clippy -- -D warnings                        # 零警告 (必须)
@@ -349,7 +351,7 @@ cargo geiger                                       # 检查 unsafe 使用
 cargo audit                                        # 检查已知漏洞
 
 # ── no_std 验证 ──────────────────────────────────────
-cargo build -p torvox-core --target thumbv6m-none-eabi --no-default-features
+cargo build -p torvox-core --target thumbv6m-none-eabi --no-default-features --features alloc
 ```
 
 完整命令见 `docs/DEVELOPMENT.md`。
@@ -435,7 +437,7 @@ nix develop --command cargo nextest  # 直接运行
 | 属性测试 | `proptest 1.11` — VT 解析器和 CellGrid 必须有 | 最少 10K 用例 |
 | 命名 | 函数/变量 `snake_case`，类型 `PascalCase`，常量 `SCREAMING_SNAKE` | |
 | 导出 | 每个 crate 最小公共 API 表面。用 `pub(crate)` 隐藏内部 | |
-| `no_std` | `torvox-core` 必须 `no_std` 兼容。`extern crate alloc` 用于 Vec/String | 验证: `cargo build -p torvox-core --target thumbv6m-none-eabi --no-default-features` |
+| `no_std` | `torvox-core` 必须 `no_std` 兼容。`extern crate alloc` 用于 Vec/String | 验证: `cargo build -p torvox-core --target thumbv6m-none-eabi --no-default-features --features alloc` |
 | Copy 语义 | 不要盲目 derive Copy。含 String/Vec 的类型不能 Copy | Shell::Custom(String) 使 TerminalConfig 失去 Copy |
 
 ## Kotlin
@@ -529,18 +531,18 @@ torvox-gui-android (uniffi, 依赖上述所有)
 
 ```
 PTY write → kernel → read() → raw bytes → crossbeam SPSC
-  → VT Parser → CellGrid + DirtyMask → notify
+  → VT Parser → CellGrid + DirtyMask (Vec<u64>分区) → notify
   → RenderThread → glyph atlas lookup → instance buffer
   → wgpu submit → SurfaceView
 ```
 
 ## 关键不变量
 
-- **torvox-core 不分配** (no_std + alloc)。它在 `no_std` 环境工作。
+- **torvox-core 需要 `alloc`** (no_std + alloc)。Vec/String 通过 `extern crate alloc` 支持，`no_std` 环境需启用 `alloc` feature。
 - **torvox-terminal 拥有所有 PTY I/O** 在专用线程中。fork 是唯一 unsafe。
 - **torvox-renderer 是单线程** (wgpu 设备在自己线程上)。
 - **FFI 边界传递结构化事件**，不是原始字节 (UniFFI Record/Enum)。
-- **DirtyMask 最多 64 行** (u64 位标志)。超过 64 行的终端需要分区或扩展。
+- **DirtyMask** `Vec<u64>` 分区，每 u64 覆盖 64 行，支持任意行数。不再有行数限制。
 - **热路径用 crossbeam**，不用 tokio。crossbeam 零分配、无锁、有界反压。
 
 ## 渲染管线
@@ -636,7 +638,7 @@ fontdb → cosmic-text 0.19 (整形) → swash 0.2.7 (光栅化, 内部用 skrif
 
 | # | 问题 | 状态 | 影响 | 计划 |
 |---|------|------|------|------|
-| 1 | `DirtyMask` 最多 64 行 (u64) | 已知 | 超过 64 行的终端需要分区 | P1.4 渲染时解决 |
+| 1 | ~~`DirtyMask` 最多 64 行 (u64)~~ | **已修复** | 改为 `Vec<u64>` 分区方案 | 本次会话 |
 | 2 | `torvox-fuzz/fuzz_targets/` 不存在 | 待建 | 模糊测试无法运行 | P1.1 后 |
 | 3 | `torvox-integration-tests/tests/` 不存在 | 待建 | 集成测试无法运行 | P1.2 后 |
 | 4 | `torvox-bench/benches/` 不存在 | 待建 | 性能基准无法运行 | P1.4 后 |
@@ -658,6 +660,6 @@ fontdb → cosmic-text 0.19 (整形) → swash 0.2.7 (光栅化, 内部用 skrif
 | SGR | Select Graphic Rendition — VT 终端文本属性控制序列 |
 | CSI | Control Sequence Introducer — VT 控制序列引导 |
 | OSC | Operating System Command — VT 操作系统命令序列 |
-| DirtyMask | u64 位标志，每一位代表一行是否脏 (需要重绘) |
+| DirtyMask | Vec<u64> 分区位标志，每 u64 覆盖 64 行，支持任意行数 |
 | SPA | Single Point of Authority — 单一权威源 (如 ARCHITECTURE.md 是版本的 SPA) |
 | PIE | Position-Independent Executable — 位置无关可执行文件 (Android 要求) |

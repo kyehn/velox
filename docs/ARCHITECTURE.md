@@ -63,8 +63,8 @@ torvox/
 ├── torvox-core/             # [no_std] 核心类型
 │   ├── src/
 │   │   ├── lib.rs          # crate 根, no_std 声明
-│ │ ├── cell.rs # Cell, Attrs (含全部 SGR), Color (ANSI 256 + TrueColor), DirtyMask
-│ │ ├── grid.rs # Grid, Scrollback 环形缓冲, DirtyMask (u64 位标志)
+│ │ ├── cell.rs # Cell, Attrs (含全部 SGR), Color (ANSI 256 + TrueColor), DirtyMask (Vec<u64> 分区位标志, 支持任意行数)
+│ │ ├── grid.rs # Grid, Scrollback 环形缓冲, DirtyMask 集成
 │   │   ├── line.rs         # Line 结构, 属性跨度编码
 │   │   ├── ansi.rs         # ANSI 调色板, SGR 属性枚举
 │ │ ├── config.rs # TerminalConfig, Shell (SystemDefault|Custom(String)), RenderConfig, FontConfig
@@ -112,7 +112,7 @@ torvox/
 ├── torvox-gui-android/      # Android GUI 桥接
 │   ├── src/
 │   │   ├── lib.rs          # crate 根, setup_scaffolding!()
-│   │   ├── bridge.rs       # UniFFI 导出: TorvoxBridge, BridgeCell, TerminalConfig 等
+│ │ ├── bridge.rs # UniFFI 导出: TorvoxBridge, BridgeCell(+BridgeAttrs), Shell(Enum), TerminalConfig, TerminalEvent(6变体), TerminalError
 │   │   ├── surface.rs      # wgpu → Android Surface 共享 (Phase 1)
 │   │   └── android.rs      # Android 特定初始化 (Phase 1)
 │   ├── uniffi.toml         # UniFFI Kotlin 包名配置
@@ -305,7 +305,7 @@ PTY write → kernel → read() on PTY fd
 → crossbeam SPSC channel (lock-free, bounded 64KB)
 → VT Parser (vte::Parser + Perform trait)
 → CellGrid.apply(Delta)
-→ DirtyMask (u64 位标志)
+→ DirtyMask (Vec<u64> 分区位标志, 任意行数)
 → RenderThread wakes (via crossbeam::Notify)
 → For each dirty line:
     For each cell:
@@ -417,7 +417,7 @@ pub struct Session {
 | **VT 解析器** | 手写 Java FSM (2617行) | libvterm (C/JNI) | vte 0.15 crate (Rust, 零 unsafe) |
 | **FFI 边界** | 最小 JNI (仅 PTY) | libvterm + IronRDP + rclone + PRoot | UniFFI 0.31 类型安全绑定 |
 | **线程模型** | 3 线程 + Handler | mutex 保护 + 协程 | 专用解析线程 + crossbeam lock-free 通道 |
-| **脏区域跟踪** | 无 (全屏重绘) | Compose 管理 | DirtyMask (u64 位标志) |
+| **脏区域跟踪** | 无 (全屏重绘) | Compose 管理 | DirtyMask (Vec<u64> 分区位标志, 任意行数) |
 | **字形缓存** | 无 | 无 | etagere 0.3 GPU 图集 |
 | **内存模型** | Java 环形缓冲 (64KB) | C libvterm + Kotlin 复制 | Rust 所有权, crossbeam SPSC 零拷贝通道 |
 | **序列化** | Java Serializable | C struct | postcard 1.1 (bincode 已废弃) |

@@ -11,5 +11,6 @@ postcard = { workspace = true }
 thiserror = { workspace = true, optional = true }
 
 [features]
-default = ["std"]
-std = ["thiserror"]
+default = ["std", "alloc"]
+std = ["thiserror", "serde/std", "postcard/use-std"]
+alloc = ["serde/alloc", "postcard/alloc"]

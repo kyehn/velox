@@ -15,7 +15,7 @@ pub struct Grid {
 impl Grid {
     pub fn new(rows: u32, cols: u32) -> Self {
         let lines = (0..rows).map(|_| Line::new(cols)).collect();
-        let mut dirty = DirtyMask::CLEAN;
+        let mut dirty = DirtyMask::new(rows);
         dirty.mark_all(rows);
         Self {
             lines,
@@ -55,6 +55,7 @@ impl Grid {
         for line in &mut self.lines {
             line.resize(new_cols);
         }
+        self.dirty.resize(new_rows);
         self.dirty.mark_all(new_rows);
         self.rows = new_rows;
         self.cols = new_cols;
@@ -150,7 +151,7 @@ mod tests {
 
     #[test]
     fn dirty_mask_bit_ops() {
-        let mut m = DirtyMask::CLEAN;
+        let mut m = DirtyMask::new(24);
         assert!(!m.any_dirty());
         m.mark(0);
         m.mark(3);

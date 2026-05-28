@@ -54,34 +54,66 @@ pub struct Attrs {
     pub overline: bool,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-pub struct DirtyMask(pub u64);
+const BITS_PER_PARTITION: u32 = 64;
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct DirtyMask {
+    partitions: alloc::vec::Vec<u64>,
+}
 
 impl DirtyMask {
-    pub const CLEAN: Self = DirtyMask(0);
+    pub fn new(total_rows: u32) -> Self {
+        let num_partitions = (total_rows as usize).div_ceil(BITS_PER_PARTITION as usize);
+        Self {
+            partitions: alloc::vec![0u64; num_partitions.max(1)],
+        }
+    }
 
     pub fn is_dirty(&self, row: u32) -> bool {
-        self.0 & (1 << row) != 0
+        let (part, bit) = self.partition_index(row);
+        self.partitions
+            .get(part)
+            .is_some_and(|p| *p & (1 << bit) != 0)
     }
 
     pub fn mark(&mut self, row: u32) {
-        self.0 |= 1 << row;
+        let (part, bit) = self.partition_index(row);
+        if let Some(p) = self.partitions.get_mut(part) {
+            *p |= 1 << bit;
+        }
     }
 
     pub fn mark_all(&mut self, rows: u32) {
-        if rows >= 64 {
-            self.0 = !0;
-        } else {
-            self.0 = (1 << rows) - 1;
+        let num_partitions = (rows as usize).div_ceil(BITS_PER_PARTITION as usize);
+        self.partitions.clear();
+        self.partitions.resize(num_partitions.max(1), !0u64);
+        let remainder = rows % BITS_PER_PARTITION;
+        if remainder != 0
+            && let Some(last) = self.partitions.last_mut()
+        {
+            *last = (1u64 << remainder) - 1;
         }
     }
 
     pub fn clear(&mut self) {
-        self.0 = 0;
+        for p in &mut self.partitions {
+            *p = 0;
+        }
     }
 
     pub fn any_dirty(&self) -> bool {
-        self.0 != 0
+        self.partitions.iter().any(|&p| p != 0)
+    }
+
+    pub fn resize(&mut self, total_rows: u32) {
+        let num_partitions = (total_rows as usize).div_ceil(BITS_PER_PARTITION as usize);
+        self.partitions.resize(num_partitions.max(1), 0);
+    }
+
+    fn partition_index(&self, row: u32) -> (usize, u32) {
+        let part = (row / BITS_PER_PARTITION) as usize;
+        let bit = row % BITS_PER_PARTITION;
+        (part, bit)
     }
 }
 
@@ -166,9 +198,15 @@ mod tests {
             bg: Color::new(0, 0, 255),
             attrs: Attrs {
                 bold: true,
+                dim: false,
                 italic: false,
                 underline: true,
+                double_underline: false,
                 reverse: false,
+                strikethrough: false,
+                blink: false,
+                hidden: false,
+                overline: false,
             },
         };
         let bytes = postcard::to_allocvec(&c).unwrap();
@@ -193,12 +231,60 @@ mod tests {
 
     #[test]
     fn dirty_mask_ops() {
-        let mut m = DirtyMask::CLEAN;
+        let mut m = DirtyMask::new(24);
         assert!(!m.any_dirty());
         m.mark(5);
         assert!(m.is_dirty(5));
         assert!(!m.is_dirty(0));
         m.clear();
         assert!(!m.any_dirty());
+    }
+
+    #[test]
+    fn dirty_mask_mark_all() {
+        let mut m = DirtyMask::new(80);
+        m.mark_all(80);
+        assert!(m.any_dirty());
+        for i in 0..80 {
+            assert!(m.is_dirty(i));
+        }
+        assert!(!m.is_dirty(80));
+    }
+
+    #[test]
+    fn dirty_mask_large_row_count() {
+        let mut m = DirtyMask::new(200);
+        m.mark(0);
+        m.mark(63);
+        m.mark(64);
+        m.mark(199);
+        assert!(m.is_dirty(0));
+        assert!(m.is_dirty(63));
+        assert!(m.is_dirty(64));
+        assert!(m.is_dirty(199));
+        assert!(!m.is_dirty(65));
+        assert!(!m.is_dirty(198));
+    }
+
+    #[test]
+    fn dirty_mask_resize() {
+        let mut m = DirtyMask::new(24);
+        m.mark(5);
+        m.resize(200);
+        assert!(m.is_dirty(5));
+        assert!(!m.is_dirty(100));
+        m.mark(150);
+        assert!(m.is_dirty(150));
+    }
+
+    #[test]
+    fn dirty_mask_serde_roundtrip() {
+        let mut m = DirtyMask::new(200);
+        m.mark(0);
+        m.mark(64);
+        m.mark(199);
+        let bytes = postcard::to_allocvec(&m).unwrap();
+        let decoded: DirtyMask = postcard::from_bytes(&bytes).unwrap();
+        assert_eq!(m, decoded);
     }
 }

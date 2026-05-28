@@ -37,7 +37,7 @@
 
 **详细步骤**:
 1. `cell.rs` — 定义 `Cell`, `Attrs` (含全部 SGR), `Color` (ANSI 256 + TrueColor RGB), `DirtyMask`
-2. `grid.rs` — 定义 `Grid`, `DirtyMask` (u64 位标志), `Scrollback` (环形缓冲)
+2. `grid.rs` — 定义 `Grid`, `DirtyMask` (Vec<u64> 分区位标志), `Scrollback` (环形缓冲)
 3. `ansi.rs` — 定义 ANSI 调色板 (0-255), SGR 属性枚举
 4. `config.rs` — 定义 `TerminalConfig`, `RenderConfig`, `FontConfig`
 5. `selection.rs` — 定义 `Selection` (字符/词/行/块), `SelectionAnchor`
@@ -203,7 +203,7 @@
 4. WGSL 着色器: `cursor.wgsl` (光标块/下划线/竖线)
 5. 渲染管线: 单次绘制调用, 实例化四边形
 6. 实例缓冲区构建: 遍历脏单元格 → 查找图集 UV → 构建 Instance
-7. DirtyMask 位标志 → 仅处理脏行 → 实例缓冲区 diff
+7. DirtyMask (Vec<u64> 分区) → 仅处理脏行 → 实例缓冲区 diff
 8. wgpu 命令编码 + 提交
 9. 帧呈现 (vsync 或 immediate)
 10. 桌面测试: `cargo run` 显示空白终端 + 光标
