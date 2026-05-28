@@ -101,8 +101,8 @@ Strong success criteria let you loop independently. Weak criteria ("make it work
 
 ## 当前状态
 
-- **阶段**: 0→1 (基础设施→终端引擎) — P0.1 完成, P0.2 核心类型完成, P0.3 Android 外壳完成, P0.4 文档+CI 完成, P0.5 PTY 验证完成
-- **下一步**: P0.6 UniFFI 桥接验证
+- **阶段**: 0 完成 (基础设施) → 1 (终端引擎) — P0.1–P0.6 全部完成
+- **下一步**: P1.1 VT 解析器
 
 ## 关键约束
 
@@ -116,7 +116,11 @@ Strong success criteria let you loop independently. Weak criteria ("make it work
 │ - 使用 portable-pty。它不支持 Android。用 nix 0.31 crate。     │
 │ - 使用 bincode。它已废弃 (RUSTSEC-2025-0141)。用 postcard 1.1。│
 │ - 使用 rust-android-gradle。AGP 9.0 移除了 AppExtension，不兼容。│
-│   用 cargo-ndk v4 脚本代替。                                     │
+│   用 cargo-ndk v4 脚本代替。 │
+│ - 在多个 crate 中使用 setup_scaffolding!()。UniFFI 库模式只允许一个。│
+│   所有 UniFFI 类型放 torvox-gui-android，torvox-bridge-types 仅纯 Rust。│
+│ - 在 UniFFI Error 枚举中使用 `message` 字段名。与 Kotlin Throwable.message │
+│   冲突。改用 `detail`。 │
 │ - 略读 ADR。阅读它们。它们存在是为了防止错误决策。            │
 │ - 添加 license 声明。本项目仅作者和 AI 使用。                  │
 │ - 无规范编码 (vibe coding)。必须先写规范再实现。               │
