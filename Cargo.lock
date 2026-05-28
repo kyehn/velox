@@ -1598,14 +1598,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "torvox-bridge-types"
-version = "0.1.0"
-dependencies = [
- "serde",
- "thiserror",
-]
-
-[[package]]
 name = "torvox-core"
 version = "0.1.0"
 dependencies = [

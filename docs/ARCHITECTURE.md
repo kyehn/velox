@@ -14,7 +14,7 @@ Torvox 是分层架构的终端模拟器，Rust 核心引擎 + Kotlin/Compose An
 │ └────────┬────────┘ └───────┬────────┘ └──────────┬───────────┘     │
 │          │                  │                      │                 │
 │ ┌────────┴──────────────────┴──────────────────────┴───────────┐    │
-│ │ UniFFI Bridge (torvox-gui-android + torvox-bridge-types) │ │
+│ │ UniFFI Bridge (torvox-gui-android)                         │    │
 │ │ SessionHandle │ CellUpdateStream │ InputEvent │ ConfigSnapshot│    │
 │ └───────────────────────────────────────────────────────────────┘    │
 └──────────────────────────────────────────────────────────────────────┘
@@ -65,6 +65,7 @@ torvox/
 │   │   ├── lib.rs          # crate 根, no_std 声明
 │   │   ├── cell.rs         # Cell, CellAttributes, Color (ANSI 256 + TrueColor)
 │   │   ├── grid.rs         # Grid<T>, Scrollback 环形缓冲, DirtyLine bitmask
+│   │   ├── line.rs         # Line 结构, 属性跨度编码
 │   │   ├── ansi.rs         # ANSI 调色板, SGR 属性枚举
 │   │   ├── config.rs       # TerminalConfig, RenderConfig, FontConfig
 │   │   ├── selection.rs    # Selection 类型 (字符/词/行/块), SelectionAnchor
@@ -110,21 +111,16 @@ torvox/
 │
 ├── torvox-gui-android/      # Android GUI 桥接
 │   ├── src/
-│   │   ├── lib.rs          # crate 根, JNI_OnLoad
-│   │   ├── bridge.rs       # UniFFI 0.31 导出函数
-│   │   ├── surface.rs      # wgpu → Android Surface 共享
-│   │   └── android.rs      # Android 特定初始化 (ANativeWindow 获取)
-│   ├── Cargo.toml
-│   └── build.rs            # cargo-ndk v4 交叉编译
-│
-├── torvox-bridge-types/     # FFI 边界共享类型
-│   ├── src/
-│   │   └── lib.rs          # #[derive(uniffi::Enum/Record)] 跨边界类型
+│   │   ├── lib.rs          # crate 根, setup_scaffolding!()
+│   │   ├── bridge.rs       # UniFFI 导出: TorvoxBridge, BridgeCell, TerminalConfig 等
+│   │   ├── surface.rs      # wgpu → Android Surface 共享 (Phase 1)
+│   │   └── android.rs      # Android 特定初始化 (Phase 1)
+│   ├── uniffi.toml         # UniFFI Kotlin 包名配置
 │   └── Cargo.toml
 │
 ├── torvox-exec/             # W^X 多调用二进制
 │   ├── src/
-│   │   └── main.rs         # 根据 /proc/self/exe 执行对应命令
+│   │   └── main.rs         # 根据 argv[0] 执行对应命令
 │   └── Cargo.toml
 │
 ├── torvox-fuzz/             # 模糊测试目标
@@ -185,8 +181,8 @@ torvox/
 | glyphon | 0.11 | wgpu 文本渲染 (参考实现) |
 | vte | 0.15 | Paul Williams 状态机 VT 解析器 |
 | nix | 0.31 | Unix API (forkpty, openpty, ioctl) |
-| UniFFI | 0.31 | 类型安全 Rust↔Kotlin 绑定 |
-| rust-android-gradle | 0.9.6 | Gradle Rust 交叉编译插件 |
+| UniFFI | 0.31 | 类型安全 Rust↔Kotlin 绑定; 所有 UniFFI 类型在 gui-android/src/bridge.rs (单一 setup_scaffolding!()) |
+| rust-android-gradle | 0.9.6 | 已弃用: AGP 9.0 移除了 AppExtension, 不兼容。改用 scripts/build-android-libs.sh + cargo-ndk v4 |
 | cargo-ndk | v4 | **重大变更**: v4 重写了 CLI, 与 v3 不兼容 |
 | postcard | 1.1 | 序列化 (替代已废弃的 bincode 3) |
 | thiserror | 2 | 错误类型派生 |
@@ -211,6 +207,9 @@ torvox/
 | `portable-pty` | → `nix` crate forkpty() | portable-pty 不支持 Android |
 | `AHardwareBuffer` | → `SurfaceView` | wgpu 原生支持 Surface, 零复制, 游戏引擎标准模式 |
 | minSdk 26 | → minSdk 33 | Vulkan 1.3 从 API 33 起原生支持 |
+| `rust-android-gradle 0.9.6` | → `scripts/build-android-libs.sh` | AGP 9.0 移除了 AppExtension, rust-android-gradle 不兼容。用 cargo-ndk v4 直接交叉编译 |
+| `torvox-bridge-types` UniFFI | → 类型合并到 `gui-android/src/bridge.rs` | UniFFI 库模式仅允许一个 `setup_scaffolding!()`; 跨 crate derive 导致 Kotlin 生成重复脚手架 |
+| `TerminalError.message` | → `TerminalError.detail` | Kotlin `Throwable.message` 冲突, UniFFI Error 枚举字段名不能为 `message` |
 | `glifo` | 不采用 (待 1.0) | Linebender 新项目, 未稳定; swash 0.2.x 长期依赖稳定 |
 
 ### 已知风险
