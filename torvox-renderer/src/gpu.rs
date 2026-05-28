@@ -146,12 +146,11 @@ impl GpuContext {
                 ],
             });
 
-        let cell_pipeline_layout =
-            device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
-                label: Some("Cell Pipeline Layout"),
-                bind_group_layouts: &[Some(&cell_bind_group_layout)],
-                immediate_size: 0,
-            });
+        let cell_pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
+            label: Some("Cell Pipeline Layout"),
+            bind_group_layouts: &[Some(&cell_bind_group_layout)],
+            immediate_size: 0,
+        });
 
         let cell_pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
             label: Some("Cell Pipeline"),
@@ -203,10 +202,7 @@ impl GpuContext {
         })
     }
 
-    pub fn create_surface(
-        &mut self,
-        window: Arc<winit::window::Window>,
-    ) -> Result<(), GpuError> {
+    pub fn create_surface(&mut self, window: Arc<winit::window::Window>) -> Result<(), GpuError> {
         let size = window.inner_size();
         let surface = self
             .instance
@@ -319,30 +315,41 @@ impl GpuContext {
             bytemuck::cast_slice(&[uniforms]),
         );
 
-        self.cell_bind_group = Some(self.device.create_bind_group(&wgpu::BindGroupDescriptor {
-            label: Some("Cell Bind Group"),
-            layout: &self.cell_pipeline.get_bind_group_layout(0),
-            entries: &[
-                wgpu::BindGroupEntry {
-                    binding: 0,
-                    resource: self.cell_uniform_buffer.as_ref().unwrap().as_entire_binding(),
-                },
-                wgpu::BindGroupEntry {
-                    binding: 1,
-                    resource: wgpu::BindingResource::TextureView(self.atlas_view.as_ref().unwrap()),
-                },
-                wgpu::BindGroupEntry {
-                    binding: 2,
-                    resource: wgpu::BindingResource::Sampler(self.atlas_sampler.as_ref().unwrap()),
-                },
-            ],
-        }));
+        self.cell_bind_group = Some(
+            self.device.create_bind_group(&wgpu::BindGroupDescriptor {
+                label: Some("Cell Bind Group"),
+                layout: &self.cell_pipeline.get_bind_group_layout(0),
+                entries: &[
+                    wgpu::BindGroupEntry {
+                        binding: 0,
+                        resource: self
+                            .cell_uniform_buffer
+                            .as_ref()
+                            .unwrap()
+                            .as_entire_binding(),
+                    },
+                    wgpu::BindGroupEntry {
+                        binding: 1,
+                        resource: wgpu::BindingResource::TextureView(
+                            self.atlas_view.as_ref().unwrap(),
+                        ),
+                    },
+                    wgpu::BindGroupEntry {
+                        binding: 2,
+                        resource: wgpu::BindingResource::Sampler(
+                            self.atlas_sampler.as_ref().unwrap(),
+                        ),
+                    },
+                ],
+            }),
+        );
     }
 
     pub fn render_frame(&self, instances: &[CellInstance]) -> Result<(), GpuError> {
-        let surface = self.surface.as_ref().ok_or(GpuError::Surface(
-            "No surface configured".to_string(),
-        ))?;
+        let surface = self
+            .surface
+            .as_ref()
+            .ok_or(GpuError::Surface("No surface configured".to_string()))?;
 
         let output = match surface.get_current_texture() {
             wgpu::CurrentSurfaceTexture::Success(tex) => tex,
@@ -397,11 +404,12 @@ impl GpuContext {
 
                 if !instances.is_empty() {
                     let instance_buffer =
-                        self.device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-                            label: Some("Instance Buffer"),
-                            contents: bytemuck::cast_slice(instances),
-                            usage: wgpu::BufferUsages::VERTEX,
-                        });
+                        self.device
+                            .create_buffer_init(&wgpu::util::BufferInitDescriptor {
+                                label: Some("Instance Buffer"),
+                                contents: bytemuck::cast_slice(instances),
+                                usage: wgpu::BufferUsages::VERTEX,
+                            });
 
                     render_pass.set_vertex_buffer(0, instance_buffer.slice(..));
                     render_pass.draw(0..6, 0..instances.len() as u32);

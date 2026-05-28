@@ -97,19 +97,12 @@ torvox/
 │   ├── examples/
 │   │   └── basic_render.rs # 桌面渲染示例 (winit + wgpu)
 │   └── Cargo.toml
-│   │   ├── renderer.rs     # WgpuRenderer 编排器
-│   │   └── surface.rs      # Android Surface 创建 (ANativeWindow → wgpu Surface)
-│   ├── shaders/
-│   │   ├── cell.wgsl       # 单元格实例化四边形着色器
-│   │   └── cursor.wgsl     # 光标渲染着色器
-│   └── Cargo.toml
 │
 ├── torvox-gui-android/      # Android GUI 桥接
 │   ├── src/
 │   │   ├── lib.rs          # crate 根, setup_scaffolding!()
 │ │ ├── bridge.rs # UniFFI 导出: TorvoxBridge, BridgeCell(+BridgeAttrs), Shell(Enum), TerminalConfig, TerminalEvent(6变体), TerminalError
-│   │   ├── surface.rs      # wgpu → Android Surface 共享 (Phase 1)
-│   │   └── android.rs      # Android 特定初始化 (Phase 1)
+│   │   └── surface.rs      # wgpu → Android Surface 共享 (Phase 1)
 │   ├── uniffi.toml         # UniFFI Kotlin 包名配置
 │   └── Cargo.toml
 │
