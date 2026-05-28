@@ -60,6 +60,103 @@ impl Grid {
         self.rows = new_rows;
         self.cols = new_cols;
     }
+
+    pub fn cell_mut(&mut self, row: u32, col: u32) -> Option<&mut crate::cell::Cell> {
+        self.dirty.mark(row);
+        self.lines
+            .get_mut(row as usize)
+            .and_then(|line| line.get_mut(col))
+    }
+
+    pub fn cell(&self, row: u32, col: u32) -> Option<&crate::cell::Cell> {
+        self.lines.get(row as usize).and_then(|line| line.get(col))
+    }
+
+    pub fn mark_row_dirty(&mut self, row: u32) {
+        self.dirty.mark(row);
+    }
+
+    pub fn mark_rows_dirty(&mut self, start: u32, end: u32) {
+        for row in start..end {
+            self.dirty.mark(row);
+        }
+    }
+
+    pub fn scroll_up(&mut self, top: u32, bottom: u32, cols: u32) {
+        if top >= bottom || bottom > self.rows {
+            return;
+        }
+        let count = (bottom - top) as usize;
+        if count <= 1 {
+            return;
+        }
+        self.lines.remove(top as usize);
+        self.lines.insert(bottom as usize - 1, Line::new(cols));
+        for row in top..bottom {
+            self.dirty.mark(row);
+        }
+    }
+
+    pub fn scroll_down(&mut self, top: u32, bottom: u32, cols: u32) {
+        if top >= bottom || bottom > self.rows {
+            return;
+        }
+        self.lines.remove(bottom as usize - 1);
+        self.lines.insert(top as usize, Line::new(cols));
+        for row in top..bottom {
+            self.dirty.mark(row);
+        }
+    }
+
+    pub fn insert_lines(&mut self, at: u32, count: u32, bottom: u32, cols: u32) {
+        if at >= bottom || count == 0 {
+            return;
+        }
+        let actual = count.min(bottom - at);
+        for _ in 0..actual {
+            self.lines.remove(bottom as usize - 1);
+            self.lines.insert(at as usize, Line::new(cols));
+        }
+        for row in at..bottom {
+            self.dirty.mark(row);
+        }
+    }
+
+    pub fn delete_lines(&mut self, at: u32, count: u32, bottom: u32, cols: u32) {
+        if at >= bottom || count == 0 {
+            return;
+        }
+        let actual = count.min(bottom - at);
+        for _ in 0..actual {
+            self.lines.remove(at as usize);
+            self.lines.insert(bottom as usize - 1, Line::new(cols));
+        }
+        for row in at..bottom {
+            self.dirty.mark(row);
+        }
+    }
+
+    pub fn clear_cells(&mut self, row: u32, start_col: u32, end_col: u32) {
+        if let Some(line) = self.lines.get_mut(row as usize) {
+            for col in start_col..end_col.min(line.len()) {
+                if let Some(cell) = line.get_mut(col) {
+                    *cell = crate::cell::Cell::default();
+                }
+            }
+            self.dirty.mark(row);
+        }
+    }
+
+    pub fn fill_cells(&mut self, row: u32, ch: char, start_col: u32, end_col: u32) {
+        if let Some(line) = self.lines.get_mut(row as usize) {
+            for col in start_col..end_col.min(line.len()) {
+                if let Some(cell) = line.get_mut(col) {
+                    cell.char = ch;
+                }
+            }
+            self.dirty.mark(row);
+        }
+    }
 }
 
 #[cfg(test)]
