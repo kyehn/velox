@@ -19,7 +19,7 @@ impl Default for TerminalConfig {
             shell: "/system/bin/sh".to_string(),
             rows: 24,
             cols: 80,
-            scrollback_lines: 5000,
+            scrollback_lines: 50_000,
         }
     }
 }
@@ -89,7 +89,7 @@ mod tests {
             shell: "/bin/sh".to_string(),
             rows: 24,
             cols: 80,
-            scrollback_lines: 5000,
+            scrollback_lines: 50_000,
         };
         let bridge = TorvoxBridge::new(config);
         assert_eq!(bridge.ping(), "pong");

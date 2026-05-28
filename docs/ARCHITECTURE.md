@@ -63,11 +63,11 @@ torvox/
 ├── torvox-core/             # [no_std] 核心类型
 │   ├── src/
 │   │   ├── lib.rs          # crate 根, no_std 声明
-│   │   ├── cell.rs         # Cell, CellAttributes, Color (ANSI 256 + TrueColor)
-│   │   ├── grid.rs         # Grid<T>, Scrollback 环形缓冲, DirtyLine bitmask
+│ │ ├── cell.rs # Cell, Attrs (含全部 SGR), Color (ANSI 256 + TrueColor), DirtyMask
+│ │ ├── grid.rs # Grid, Scrollback 环形缓冲, DirtyMask (u64 位标志)
 │   │   ├── line.rs         # Line 结构, 属性跨度编码
 │   │   ├── ansi.rs         # ANSI 调色板, SGR 属性枚举
-│   │   ├── config.rs       # TerminalConfig, RenderConfig, FontConfig
+│ │ ├── config.rs # TerminalConfig, Shell (SystemDefault|Custom(String)), RenderConfig, FontConfig
 │   │   ├── selection.rs    # Selection 类型 (字符/词/行/块), SelectionAnchor
 │   │   ├── cursor.rs       # CursorState (位置, 样式, 可见性)
 │   │   ├── unicode.rs      # UnicodeWidth 表, EastAsianWidth 查找
@@ -235,7 +235,7 @@ torvox/
 Android 10+ 限制非系统库的 `exec()`。Torvox 使用 Termux 验证的模式：
 
 1. **多调用二进制**: `torvox-exec` 单一二进制文件，所有命令作为符号链接指向它
-2. `torvox-exec` 根据 `/proc/self/exe` 确定调用者身份
+2. `torvox-exec` 根据 `argv[0]` 的 `file_name()` 确定调用者身份
 3. 以正确参数执行 `exec()`
 4. 这绕过了 Android 的 W^X 限制，因为二进制文件本身由系统加载器映射为可执行
 
@@ -305,7 +305,7 @@ PTY write → kernel → read() on PTY fd
 → crossbeam SPSC channel (lock-free, bounded 64KB)
 → VT Parser (vte::Parser + Perform trait)
 → CellGrid.apply(Delta)
-→ DirtyLine bitmask
+→ DirtyMask (u64 位标志)
 → RenderThread wakes (via crossbeam::Notify)
 → For each dirty line:
     For each cell:
@@ -417,7 +417,7 @@ pub struct Session {
 | **VT 解析器** | 手写 Java FSM (2617行) | libvterm (C/JNI) | vte 0.15 crate (Rust, 零 unsafe) |
 | **FFI 边界** | 最小 JNI (仅 PTY) | libvterm + IronRDP + rclone + PRoot | UniFFI 0.31 类型安全绑定 |
 | **线程模型** | 3 线程 + Handler | mutex 保护 + 协程 | 专用解析线程 + crossbeam lock-free 通道 |
-| **脏区域跟踪** | 无 (全屏重绘) | Compose 管理 | DirtyLine bitmask |
+| **脏区域跟踪** | 无 (全屏重绘) | Compose 管理 | DirtyMask (u64 位标志) |
 | **字形缓存** | 无 | 无 | etagere 0.3 GPU 图集 |
 | **内存模型** | Java 环形缓冲 (64KB) | C libvterm + Kotlin 复制 | Rust 所有权, crossbeam SPSC 零拷贝通道 |
 | **序列化** | Java Serializable | C struct | postcard 1.1 (bincode 已废弃) |

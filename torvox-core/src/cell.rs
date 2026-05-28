@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+#[cfg(feature = "std")]
 use thiserror::Error;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -42,22 +43,54 @@ impl Default for Color {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub struct Attrs {
     pub bold: bool,
+    pub dim: bool,
     pub italic: bool,
     pub underline: bool,
+    pub double_underline: bool,
     pub reverse: bool,
+    pub strikethrough: bool,
+    pub blink: bool,
+    pub hidden: bool,
+    pub overline: bool,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-pub enum DirtyLine {
-    Clean,
-    Dirty(u32),
+pub struct DirtyMask(pub u64);
+
+impl DirtyMask {
+    pub const CLEAN: Self = DirtyMask(0);
+
+    pub fn is_dirty(&self, row: u32) -> bool {
+        self.0 & (1 << row) != 0
+    }
+
+    pub fn mark(&mut self, row: u32) {
+        self.0 |= 1 << row;
+    }
+
+    pub fn mark_all(&mut self, rows: u32) {
+        if rows >= 64 {
+            self.0 = !0;
+        } else {
+            self.0 = (1 << rows) - 1;
+        }
+    }
+
+    pub fn clear(&mut self) {
+        self.0 = 0;
+    }
+
+    pub fn any_dirty(&self) -> bool {
+        self.0 != 0
+    }
 }
 
-#[derive(Debug, Clone, Error)]
+#[derive(Debug, Clone)]
+#[cfg_attr(feature = "std", derive(Error))]
 pub enum CoreError {
-    #[error("row index out of bounds: {index} >= {max}")]
+    #[cfg_attr(feature = "std", error("row index out of bounds: {index} >= {max}"))]
     RowOutOfBounds { index: u32, max: u32 },
-    #[error("column index out of bounds: {index} >= {max}")]
+    #[cfg_attr(feature = "std", error("column index out of bounds: {index} >= {max}"))]
     ColOutOfBounds { index: u32, max: u32 },
 }
 
@@ -147,14 +180,25 @@ mod tests {
     fn attrs_default_all_false() {
         let a = Attrs::default();
         assert!(!a.bold);
+        assert!(!a.dim);
         assert!(!a.italic);
         assert!(!a.underline);
+        assert!(!a.double_underline);
         assert!(!a.reverse);
+        assert!(!a.strikethrough);
+        assert!(!a.blink);
+        assert!(!a.hidden);
+        assert!(!a.overline);
     }
 
     #[test]
-    fn dirty_line_variants() {
-        assert_eq!(DirtyLine::Clean, DirtyLine::Clean);
-        assert_eq!(DirtyLine::Dirty(5), DirtyLine::Dirty(5));
+    fn dirty_mask_ops() {
+        let mut m = DirtyMask::CLEAN;
+        assert!(!m.any_dirty());
+        m.mark(5);
+        assert!(m.is_dirty(5));
+        assert!(!m.is_dirty(0));
+        m.clear();
+        assert!(!m.any_dirty());
     }
 }

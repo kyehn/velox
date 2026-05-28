@@ -1,13 +1,13 @@
 use alloc::vec::Vec;
 use serde::{Deserialize, Serialize};
 
-use crate::cell::DirtyLine;
+use crate::cell::DirtyMask;
 use crate::line::Line;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Grid {
     lines: Vec<Line>,
-    dirty: Vec<DirtyLine>,
+    dirty: DirtyMask,
     rows: u32,
     cols: u32,
 }
@@ -15,7 +15,8 @@ pub struct Grid {
 impl Grid {
     pub fn new(rows: u32, cols: u32) -> Self {
         let lines = (0..rows).map(|_| Line::new(cols)).collect();
-        let dirty = alloc::vec![DirtyLine::Dirty(0); rows as usize];
+        let mut dirty = DirtyMask::CLEAN;
+        dirty.mark_all(rows);
         Self {
             lines,
             dirty,
@@ -37,18 +38,16 @@ impl Grid {
     }
 
     pub fn get_mut(&mut self, row: u32) -> Option<&mut Line> {
-        self.dirty[row as usize] = DirtyLine::Dirty(row);
+        self.dirty.mark(row);
         self.lines.get_mut(row as usize)
     }
 
-    pub fn dirty(&self) -> &[DirtyLine] {
+    pub fn dirty(&self) -> &DirtyMask {
         &self.dirty
     }
 
     pub fn mark_clean(&mut self) {
-        for d in &mut self.dirty {
-            *d = DirtyLine::Clean;
-        }
+        self.dirty.clear();
     }
 
     pub fn resize(&mut self, new_rows: u32, new_cols: u32) {
@@ -56,7 +55,7 @@ impl Grid {
         for line in &mut self.lines {
             line.resize(new_cols);
         }
-        self.dirty = alloc::vec![DirtyLine::Dirty(0); new_rows as usize];
+        self.dirty.mark_all(new_rows);
         self.rows = new_rows;
         self.cols = new_cols;
     }
@@ -65,7 +64,6 @@ impl Grid {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::cell::DirtyLine;
 
     #[test]
     fn grid_new_dimensions() {
@@ -77,8 +75,8 @@ mod tests {
     #[test]
     fn grid_new_all_dirty() {
         let g = Grid::new(3, 5);
-        for d in g.dirty() {
-            assert!(*d != DirtyLine::Clean);
+        for row in 0..3 {
+            assert!(g.dirty().is_dirty(row));
         }
     }
 
@@ -86,9 +84,7 @@ mod tests {
     fn grid_mark_clean() {
         let mut g = Grid::new(3, 5);
         g.mark_clean();
-        for d in g.dirty() {
-            assert_eq!(*d, DirtyLine::Clean);
-        }
+        assert!(!g.dirty().any_dirty());
     }
 
     #[test]
@@ -109,8 +105,8 @@ mod tests {
         let mut g = Grid::new(3, 5);
         g.mark_clean();
         let _ = g.get_mut(1);
-        assert_eq!(g.dirty()[1], DirtyLine::Dirty(1));
-        assert_eq!(g.dirty()[0], DirtyLine::Clean);
+        assert!(g.dirty().is_dirty(1));
+        assert!(!g.dirty().is_dirty(0));
     }
 
     #[test]
@@ -126,9 +122,7 @@ mod tests {
         let mut g = Grid::new(3, 5);
         g.mark_clean();
         g.resize(5, 10);
-        for d in g.dirty() {
-            assert!(*d != DirtyLine::Clean);
-        }
+        assert!(g.dirty().any_dirty());
     }
 
     #[test]
@@ -152,5 +146,22 @@ mod tests {
         let decoded: Grid = postcard::from_bytes(&bytes).unwrap();
         assert_eq!(decoded.rows(), 4);
         assert_eq!(decoded.cols(), 10);
+    }
+
+    #[test]
+    fn dirty_mask_bit_ops() {
+        let mut m = DirtyMask::CLEAN;
+        assert!(!m.any_dirty());
+        m.mark(0);
+        m.mark(3);
+        assert!(m.is_dirty(0));
+        assert!(m.is_dirty(3));
+        assert!(!m.is_dirty(1));
+        m.clear();
+        assert!(!m.any_dirty());
+        m.mark_all(5);
+        for i in 0..5 {
+            assert!(m.is_dirty(i));
+        }
     }
 }
