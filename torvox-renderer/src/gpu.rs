@@ -202,6 +202,175 @@ impl GpuContext {
         })
     }
 
+    pub fn new_with_no_surface() -> Self {
+        let instance = wgpu::Instance::new(wgpu::InstanceDescriptor {
+            backends: wgpu::Backends::VULKAN,
+            flags: wgpu::InstanceFlags::default(),
+            memory_budget_thresholds: wgpu::MemoryBudgetThresholds::default(),
+            backend_options: wgpu::BackendOptions::default(),
+            display: None,
+        });
+
+        let adapter = pollster::block_on(instance.request_adapter(&wgpu::RequestAdapterOptions {
+            power_preference: wgpu::PowerPreference::HighPerformance,
+            compatible_surface: None,
+            force_fallback_adapter: false,
+        }))
+        .expect("no GPU adapter found");
+
+        let (device, queue) = pollster::block_on(adapter.request_device(&wgpu::DeviceDescriptor {
+            label: Some("Torvox Device"),
+            required_features: wgpu::Features::empty(),
+            required_limits: wgpu::Limits::default(),
+            ..Default::default()
+        }))
+        .expect("no GPU device found");
+
+        let cell_shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
+            label: Some("Cell Shader"),
+            source: wgpu::ShaderSource::Wgsl(include_str!("../shaders/cell.wgsl").into()),
+        });
+
+        let cell_bind_group_layout =
+            device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+                label: Some("Cell Bind Group Layout"),
+                entries: &[
+                    wgpu::BindGroupLayoutEntry {
+                        binding: 0,
+                        visibility: wgpu::ShaderStages::VERTEX | wgpu::ShaderStages::FRAGMENT,
+                        ty: wgpu::BindingType::Buffer {
+                            ty: wgpu::BufferBindingType::Uniform,
+                            has_dynamic_offset: false,
+                            min_binding_size: None,
+                        },
+                        count: None,
+                    },
+                    wgpu::BindGroupLayoutEntry {
+                        binding: 1,
+                        visibility: wgpu::ShaderStages::FRAGMENT,
+                        ty: wgpu::BindingType::Texture {
+                            sample_type: wgpu::TextureSampleType::Float { filterable: true },
+                            view_dimension: wgpu::TextureViewDimension::D2,
+                            multisampled: false,
+                        },
+                        count: None,
+                    },
+                    wgpu::BindGroupLayoutEntry {
+                        binding: 2,
+                        visibility: wgpu::ShaderStages::FRAGMENT,
+                        ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering),
+                        count: None,
+                    },
+                ],
+            });
+
+        let cell_pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
+            label: Some("Cell Pipeline Layout"),
+            bind_group_layouts: &[Some(&cell_bind_group_layout)],
+            immediate_size: 0,
+        });
+
+        let cell_pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
+            label: Some("Cell Pipeline"),
+            layout: Some(&cell_pipeline_layout),
+            vertex: wgpu::VertexState {
+                module: &cell_shader,
+                entry_point: Some("vs_main"),
+                buffers: &[],
+                compilation_options: Default::default(),
+            },
+            fragment: Some(wgpu::FragmentState {
+                module: &cell_shader,
+                entry_point: Some("fs_main"),
+                targets: &[Some(wgpu::ColorTargetState {
+                    format: wgpu::TextureFormat::Bgra8UnormSrgb,
+                    blend: Some(wgpu::BlendState::REPLACE),
+                    write_mask: wgpu::ColorWrites::ALL,
+                })],
+                compilation_options: Default::default(),
+            }),
+            primitive: wgpu::PrimitiveState {
+                topology: wgpu::PrimitiveTopology::TriangleList,
+                strip_index_format: None,
+                front_face: wgpu::FrontFace::Ccw,
+                cull_mode: None,
+                polygon_mode: wgpu::PolygonMode::Fill,
+                unclipped_depth: false,
+                conservative: false,
+            },
+            depth_stencil: None,
+            multisample: wgpu::MultisampleState::default(),
+            multiview_mask: None,
+            cache: None,
+        });
+
+        Self {
+            instance,
+            adapter,
+            device,
+            queue,
+            surface: None,
+            surface_config: None,
+            cell_pipeline,
+            cell_bind_group: None,
+            cell_uniform_buffer: None,
+            atlas_texture: None,
+            atlas_view: None,
+            atlas_sampler: None,
+        }
+    }
+
+    pub fn set_surface_from_native_window(
+        &mut self,
+        window_ptr: *mut std::ffi::c_void,
+    ) -> Result<(), GpuError> {
+        use raw_window_handle::{AndroidDisplayHandle, AndroidNdkWindowHandle};
+
+        let non_null = std::ptr::NonNull::new(window_ptr)
+            .ok_or_else(|| GpuError::Surface("null window pointer".to_string()))?;
+
+        let android_handle = AndroidNdkWindowHandle::new(non_null);
+        let display_handle = AndroidDisplayHandle::new();
+
+        let raw_win_handle = raw_window_handle::RawWindowHandle::AndroidNdk(android_handle);
+        let raw_display_handle = raw_window_handle::RawDisplayHandle::Android(display_handle);
+
+        let surface = unsafe {
+            self.instance
+                .create_surface_unsafe(wgpu::SurfaceTargetUnsafe::RawHandle {
+                    raw_window_handle: raw_win_handle,
+                    raw_display_handle: Some(raw_display_handle),
+                })
+        }
+        .map_err(|e| GpuError::Surface(e.to_string()))?;
+
+        let caps = surface.get_capabilities(&self.adapter);
+        let format = caps
+            .formats
+            .iter()
+            .find(|f| f.is_srgb())
+            .copied()
+            .unwrap_or(caps.formats[0]);
+
+        let config = wgpu::SurfaceConfiguration {
+            usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
+            format,
+            width: 1080,
+            height: 1920,
+            present_mode: wgpu::PresentMode::AutoVsync,
+            alpha_mode: caps.alpha_modes[0],
+            view_formats: vec![],
+            desired_maximum_frame_latency: 2,
+        };
+
+        surface.configure(&self.device, &config);
+
+        self.surface = Some(surface);
+        self.surface_config = Some(config);
+
+        Ok(())
+    }
+
     pub fn create_surface(&mut self, window: Arc<winit::window::Window>) -> Result<(), GpuError> {
         let size = window.inner_size();
         let surface = self

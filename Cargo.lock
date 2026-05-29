@@ -2440,6 +2440,7 @@ dependencies = [
 name = "torvox-gui-android"
 version = "0.1.0"
 dependencies = [
+ "raw-window-handle",
  "thiserror 2.0.18",
  "torvox-core",
  "torvox-renderer",
@@ -2466,6 +2467,7 @@ dependencies = [
  "etagere",
  "fontdb",
  "pollster",
+ "raw-window-handle",
  "swash",
  "thiserror 2.0.18",
  "torvox-core",

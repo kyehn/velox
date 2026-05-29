@@ -87,10 +87,8 @@ torvox/
 ├── torvox-renderer/         # GPU 渲染
 │   ├── src/
 │   │   ├── lib.rs          # crate 根
-│   │   ├── atlas.rs        # 字形图集 (etagere 0.3 货架打包)
 │   │   ├── font.rs         # 字体管线 (cosmic-text 0.19 + swash 0.2.7 + etagere)
-│   │   ├── gpu.rs          # wgpu v29 GPU 管线 (Instance/Device/Queue/Surface)
-│   │   └── pipeline.rs     # 渲染管线 (空壳, 待实现)
+│   │   └── gpu.rs          # wgpu v29 GPU 管线 (Instance/Device/Queue/Surface)
 │   ├── shaders/
 │   │   ├── cell.wgsl       # 单元格着色器 (实例化四边形)
 │   │   └── cursor.wgsl     # 光标着色器 (纯色矩形)
@@ -102,7 +100,7 @@ torvox/
 │   ├── src/
 │   │   ├── lib.rs          # crate 根, setup_scaffolding!()
 │ │ ├── bridge.rs # UniFFI 导出: TorvoxBridge, BridgeCell(+BridgeAttrs), Shell(Enum), TerminalConfig, TerminalEvent(6变体), TerminalError
-│   │   └── surface.rs      # wgpu → Android Surface 共享 (Phase 1)
+│   │   └── surface.rs      # wgpu → Android Surface 共享 (P1.5)
 │   ├── uniffi.toml         # UniFFI Kotlin 包名配置
 │   └── Cargo.toml
 │
@@ -337,9 +335,9 @@ let instance = wgpu::Instance::new(&wgpu::InstanceDescriptor {
 // Android/Vulkan 推荐模式 2:
 let surface = unsafe {
     instance.create_surface_unsafe(
-        wgpu::SurfaceTargetUnsafe::RawWindow {
+        wgpu::SurfaceTargetUnsafe::RawHandle {
             raw_window_handle: android_raw_window_handle,
-            raw_display_handle: None, // Vulkan 后端不使用
+            raw_display_handle: Some(raw_display_handle),
         }
     )?
 };

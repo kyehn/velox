@@ -1,8 +1,8 @@
 # Torvox 项目进度报告
 
-> 生成时间: 2026-05-29 (审计更新)
-> 代码行数: 5,512 行 Rust
-> 测试数量: 214 个 (74 core + 7 android + 10 renderer + 123 terminal)
+> 生成时间: 2026-05-29 (深度审计更新)
+> 代码行数: ~5,800 行 Rust
+> 测试数量: 220 个 (78 core + 7 android + 10 renderer + 125 terminal)
 > Clippy 状态: 零警告
 
 ---
