@@ -1,5 +1,6 @@
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::{Condvar, Mutex};
 use std::time::Duration;
 
 use crossbeam::channel::{Receiver, bounded};
@@ -26,6 +27,7 @@ pub struct Session {
     terminal: TerminalState,
     parser: VtParser,
     output_rx: Receiver<Vec<u8>>,
+    output_notify: Arc<(Mutex<bool>, Condvar)>,
     exited: Arc<AtomicBool>,
     reader_handle: Option<std::thread::JoinHandle<()>>,
     wait_handle: Option<std::thread::JoinHandle<()>>,
@@ -37,6 +39,7 @@ impl Session {
         pty.set_nonblocking()?;
 
         let exited = Arc::new(AtomicBool::new(false));
+        let output_notify = Arc::new((Mutex::new(false), Condvar::new()));
 
         let (output_tx, output_rx) = bounded::<Vec<u8>>(64);
 
@@ -46,6 +49,7 @@ impl Session {
         }
 
         let exited_read = exited.clone();
+        let notify_read = output_notify.clone();
         let reader_handle = std::thread::spawn(move || {
             let mut read_buf = [0u8; READ_BUF_SIZE];
             loop {
@@ -61,8 +65,16 @@ impl Session {
                     if output_tx.send(data).is_err() {
                         break;
                     }
+                    let (lock, cvar) = &*notify_read;
+                    let mut pending = lock.lock().unwrap();
+                    *pending = true;
+                    cvar.notify_one();
                 } else if n == 0 {
                     exited_read.store(true, Ordering::Release);
+                    let (lock, cvar) = &*notify_read;
+                    let mut pending = lock.lock().unwrap();
+                    *pending = true;
+                    cvar.notify_one();
                     break;
                 } else {
                     let err = std::io::Error::last_os_error();
@@ -70,6 +82,10 @@ impl Session {
                         std::thread::sleep(Duration::from_millis(2));
                     } else {
                         exited_read.store(true, Ordering::Release);
+                        let (lock, cvar) = &*notify_read;
+                        let mut pending = lock.lock().unwrap();
+                        *pending = true;
+                        cvar.notify_one();
                         break;
                     }
                 }
@@ -91,6 +107,7 @@ impl Session {
             terminal: TerminalState::new(rows, cols),
             parser: VtParser::new(),
             output_rx,
+            output_notify,
             exited,
             reader_handle: Some(reader_handle),
             wait_handle: Some(wait_handle),
@@ -110,6 +127,15 @@ impl Session {
         self.pty.resize(rows as u16, cols as u16)?;
         self.terminal.resize(rows, cols);
         Ok(())
+    }
+
+    pub fn wait_for_output(&self) {
+        let (lock, cvar) = &*self.output_notify;
+        let mut pending = lock.lock().unwrap();
+        while !*pending {
+            pending = cvar.wait(pending).unwrap();
+        }
+        *pending = false;
     }
 
     pub fn process_output(&mut self) -> bool {

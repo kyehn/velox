@@ -7,7 +7,6 @@ license = "UNLICENSED"
 
 [dependencies]
 torvox-core = { workspace = true }
-torvox-terminal = { workspace = true }
 wgpu = { workspace = true }
 winit = { workspace = true }
 bytemuck = { workspace = true }

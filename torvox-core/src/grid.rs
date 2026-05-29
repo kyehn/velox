@@ -1,8 +1,36 @@
 use alloc::vec::Vec;
 use serde::{Deserialize, Serialize};
 
-use crate::cell::DirtyMask;
+use crate::cell::{Cell, DirtyMask};
 use crate::line::Line;
+
+/// Read-only snapshot of the terminal grid for rendering.
+/// Implemented by Grid so renderer doesn't depend on terminal crate.
+pub trait GridSnapshot {
+    fn rows(&self) -> u32;
+    fn cols(&self) -> u32;
+    fn get(&self, row: u32) -> Option<&Line>;
+    fn cell(&self, row: u32, col: u32) -> Option<&Cell>;
+    fn dirty(&self) -> &DirtyMask;
+}
+
+impl GridSnapshot for Grid {
+    fn rows(&self) -> u32 {
+        self.rows
+    }
+    fn cols(&self) -> u32 {
+        self.cols
+    }
+    fn get(&self, row: u32) -> Option<&Line> {
+        self.lines.get(row as usize)
+    }
+    fn cell(&self, row: u32, col: u32) -> Option<&Cell> {
+        self.lines.get(row as usize).and_then(|line| line.get(col))
+    }
+    fn dirty(&self) -> &DirtyMask {
+        &self.dirty
+    }
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Grid {

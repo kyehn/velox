@@ -74,6 +74,7 @@ pub struct GpuContext {
     pub cell_pipeline: wgpu::RenderPipeline,
     pub cell_bind_group: Option<wgpu::BindGroup>,
     pub cell_uniform_buffer: Option<wgpu::Buffer>,
+    pub instance_buffer: Option<wgpu::Buffer>,
     pub atlas_texture: Option<wgpu::Texture>,
     pub atlas_view: Option<wgpu::TextureView>,
     pub atlas_sampler: Option<wgpu::Sampler>,
@@ -196,6 +197,7 @@ impl GpuContext {
             cell_pipeline,
             cell_bind_group: None,
             cell_uniform_buffer: None,
+            instance_buffer: None,
             atlas_texture: None,
             atlas_view: None,
             atlas_sampler: None,
@@ -314,6 +316,7 @@ impl GpuContext {
             cell_pipeline,
             cell_bind_group: None,
             cell_uniform_buffer: None,
+            instance_buffer: None,
             atlas_texture: None,
             atlas_view: None,
             atlas_sampler: None,
@@ -514,7 +517,7 @@ impl GpuContext {
         );
     }
 
-    pub fn render_frame(&self, instances: &[CellInstance]) -> Result<(), GpuError> {
+    pub fn render_frame(&mut self, instances: &[CellInstance]) -> Result<(), GpuError> {
         let surface = self
             .surface
             .as_ref()
@@ -572,15 +575,28 @@ impl GpuContext {
                 render_pass.set_bind_group(0, bind_group, &[]);
 
                 if !instances.is_empty() {
-                    let instance_buffer =
-                        self.device
-                            .create_buffer_init(&wgpu::util::BufferInitDescriptor {
+                    let needed_size = std::mem::size_of_val(instances) as u64;
+
+                    // Reuse or create instance buffer
+                    if self
+                        .instance_buffer
+                        .as_ref()
+                        .is_none_or(|b| b.size() < needed_size)
+                    {
+                        self.instance_buffer = Some(self.device.create_buffer_init(
+                            &wgpu::util::BufferInitDescriptor {
                                 label: Some("Instance Buffer"),
                                 contents: bytemuck::cast_slice(instances),
                                 usage: wgpu::BufferUsages::VERTEX,
-                            });
+                            },
+                        ));
+                    } else if let Some(buf) = &self.instance_buffer {
+                        self.queue
+                            .write_buffer(buf, 0, bytemuck::cast_slice(instances));
+                    }
 
-                    render_pass.set_vertex_buffer(0, instance_buffer.slice(..));
+                    render_pass
+                        .set_vertex_buffer(0, self.instance_buffer.as_ref().unwrap().slice(..));
                     render_pass.draw(0..6, 0..instances.len() as u32);
                 }
             }
@@ -603,7 +619,7 @@ pub fn orthographic_projection(width: f32, height: f32) -> [[f32; 4]; 4] {
 }
 
 pub fn build_cell_instances(
-    terminal: &torvox_terminal::terminal::TerminalState,
+    grid: &dyn torvox_core::grid::GridSnapshot,
     font_pipeline: &mut crate::font::FontPipeline,
     _cell_width: f32,
     _cell_height: f32,
@@ -611,7 +627,6 @@ pub fn build_cell_instances(
     atlas_height: f32,
 ) -> Vec<CellInstance> {
     let mut instances = Vec::new();
-    let grid = &terminal.grid;
     let rows = grid.rows();
     let cols = grid.cols();
 

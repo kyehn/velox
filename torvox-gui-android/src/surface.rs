@@ -62,7 +62,7 @@ impl AndroidSurface {
 
     pub fn render(&mut self) -> Result<(), SurfaceError> {
         let instances = torvox_renderer::gpu::build_cell_instances(
-            &self.terminal,
+            &self.terminal.grid,
             &mut self.font_pipeline,
             8.0,
             16.0,

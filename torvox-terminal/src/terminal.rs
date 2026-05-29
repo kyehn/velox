@@ -224,22 +224,19 @@ impl TerminalState {
             return;
         }
         let line = self.grid.get_mut(row).unwrap();
-        let cells: Vec<Cell> = (0..cols)
-            .map(|c| {
-                if c < col {
-                    *line.get(c).unwrap_or(&Cell::default())
-                } else if c < col + count {
-                    Cell::default()
-                } else if c < cols {
-                    *line.get(c - count).unwrap_or(&Cell::default())
-                } else {
-                    Cell::default()
-                }
-            })
-            .collect();
-        for (i, cell) in cells.into_iter().enumerate() {
-            if let Some(c) = line.get_mut(i as u32) {
-                *c = cell;
+        let actual = count.min(cols - col);
+        // Shift cells right by `actual` positions, in-place from right to left
+        let mut i = cols;
+        while i > col + actual {
+            i -= 1;
+            if let (Some(src), Some(dst)) = (line.get(i - actual).copied(), line.get_mut(i)) {
+                *dst = src;
+            }
+        }
+        // Fill blank area
+        for c in col..col + actual {
+            if let Some(cell) = line.get_mut(c) {
+                *cell = Cell::default();
             }
         }
         self.grid.mark_row_dirty(row);
@@ -253,20 +250,17 @@ impl TerminalState {
             return;
         }
         let line = self.grid.get_mut(row).unwrap();
-        let cells: Vec<Cell> = (0..cols)
-            .map(|c| {
-                if c < col {
-                    *line.get(c).unwrap_or(&Cell::default())
-                } else if c + count < cols {
-                    *line.get(c + count).unwrap_or(&Cell::default())
-                } else {
-                    Cell::default()
-                }
-            })
-            .collect();
-        for (i, cell) in cells.into_iter().enumerate() {
-            if let Some(c) = line.get_mut(i as u32) {
-                *c = cell;
+        let actual = count.min(cols - col);
+        // Shift cells left by `actual` positions, in-place from left to right
+        for c in col..cols - actual {
+            if let (Some(src), Some(dst)) = (line.get(c + actual).copied(), line.get_mut(c)) {
+                *dst = src;
+            }
+        }
+        // Fill blank area at end
+        for c in cols - actual..cols {
+            if let Some(cell) = line.get_mut(c) {
+                *cell = Cell::default();
             }
         }
         self.grid.mark_row_dirty(row);

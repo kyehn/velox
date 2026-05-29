@@ -10,7 +10,7 @@ use winit::{
 struct App {
     window: Option<Arc<Window>>,
     gpu: Option<torvox_renderer::gpu::GpuContext>,
-    terminal: torvox_terminal::terminal::TerminalState,
+    grid: torvox_core::grid::Grid,
     font_pipeline: torvox_renderer::font::FontPipeline,
     atlas_width: u32,
     atlas_height: u32,
@@ -18,7 +18,13 @@ struct App {
 
 impl App {
     fn new() -> Self {
-        let terminal = torvox_terminal::terminal::TerminalState::new(24, 80);
+        let mut grid = torvox_core::grid::Grid::new(24, 80);
+        grid.fill_cells(0, 'H', 0, 5);
+        grid.fill_cells(0, 'e', 1, 5);
+        grid.fill_cells(0, 'l', 2, 5);
+        grid.fill_cells(0, 'l', 3, 5);
+        grid.fill_cells(0, 'o', 4, 5);
+
         let atlas_width = 2048;
         let atlas_height = 2048;
         let mut font_pipeline =
@@ -28,7 +34,7 @@ impl App {
         Self {
             window: None,
             gpu: None,
-            terminal,
+            grid,
             font_pipeline,
             atlas_width,
             atlas_height,
@@ -84,9 +90,9 @@ impl ApplicationHandler for App {
                 event_loop.exit();
             }
             WindowEvent::RedrawRequested => {
-                if let (Some(gpu), Some(window)) = (&self.gpu, &self.window) {
+                if let (Some(gpu), Some(window)) = (&mut self.gpu, &self.window) {
                     let instances = torvox_renderer::gpu::build_cell_instances(
-                        &self.terminal,
+                        &self.grid,
                         &mut self.font_pipeline,
                         8.0,
                         16.0,

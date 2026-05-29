@@ -1,7 +1,7 @@
 # Torvox 项目进度报告
 
-> 生成时间: 2026-05-29 (深度审计更新)
-> 代码行数: ~5,800 行 Rust
+> 生成时间: 2026-05-29 (深度审计 + 架构重构更新)
+> 代码行数: ~6,000 行 Rust
 > 测试数量: 220 个 (78 core + 7 android + 10 renderer + 125 terminal)
 > Clippy 状态: 零警告
 
@@ -170,9 +170,10 @@ L4 模糊测试: 待实现 (torvox-fuzz 空)
 | `keyboard.rs` 728 行 | 中 | 考虑拆分为 kitty.rs, legacy.rs, mouse.rs |
 | ~~`FontPipeline::glyph_info` 每次创建新实例~~ | ~~高~~ | **已修复**: build_cell_instances 现在使用传入的 &mut FontPipeline |
 | ~~`build_cell_instances` 内部创建临时 FontPipeline~~ | ~~高~~ | **已修复**: 不再为每个字符创建新 FontPipeline 实例 |
-| `GpuContext::render_frame` 每帧创建 instance_buffer | 中 | 应使用 staging buffer 或 triple buffering |
-| `pipeline.rs` 是空壳 | 低 | 应实现或删除 |
-| `atlas.rs` 和 FontPipeline 重复 etagere | 低 | 应统一使用 FontPipeline 的 atlas |
+| ~~`GpuContext::render_frame` 每帧创建 instance_buffer~~ | ~~中~~ | **已修复**: render_frame 缓存 instance_buffer 并复用 |
+| ~~`pipeline.rs` 是空壳~~ | ~~低~~ | **已修复**: 已删除 atlas.rs 和 pipeline.rs |
+| ~~`atlas.rs` 和 FontPipeline 重复 etagere~~ | ~~低~~ | **已修复**: 已删除 atlas.rs，统一使用 FontPipeline 的 atlas |
+| ~~`insert_blank_chars`/`delete_chars` 临时 Vec 分配~~ | ~~中~~ | **已修复**: 改为就地操作，无堆分配 |
 
 ### 4.2 测试覆盖
 
@@ -188,9 +189,9 @@ L4 模糊测试: 待实现 (torvox-fuzz 空)
 
 | 问题 | 建议 |
 |------|------|
-| TerminalState 和 Session 分离不清 | Session 应拥有 TerminalState，不应暴露 grid_mut |
-| 缺少事件系统 | 应有统一的 Event enum 跨模块传递 |
-| 缺少配置系统 | FontConfig/RenderConfig 未使用 |
+| ~~TerminalState 和 Session 分离不清~~ | **已修复**: Session 封装 TerminalState，通过 terminal() 访问 |
+| ~~缺少事件系统~~ | **已修复**: Session 添加 Condvar 事件通知 (wait_for_output) |
+| ~~缺少配置系统~~ | FontConfig/RenderConfig 未使用 (P2.4) |
 | 缺少错误恢复 | PTY 断开后应自动重连或优雅退出 |
 
 ---
