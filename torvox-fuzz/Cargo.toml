@@ -1,14 +1,12 @@
 [package]
 name = "torvox-fuzz"
-version = "0.1.0"
+version = "0.0.0"
 edition = "2024"
+publish = false
 description = "Fuzz targets for Torvox terminal parser and grid operations"
-license = "UNLICENSED"
 
-[dependencies]
-torvox-core = { workspace = true }
-torvox-terminal = { workspace = true }
-libfuzzer-sys = "0.4"
+[lib]
+path = "fuzz_targets/lib.rs"
 
 [[bin]]
 name = "fuzz_vt_parser"
@@ -27,3 +25,8 @@ name = "fuzz_grid_resize"
 path = "fuzz_targets/fuzz_grid_resize.rs"
 test = false
 bench = false
+
+[dependencies]
+torvox-core = { path = "../torvox-core" }
+torvox-terminal = { path = "../torvox-terminal" }
+libfuzzer-sys = "0.4"
