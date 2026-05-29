@@ -143,7 +143,9 @@
 | 文件 | 重要性 | 用途 | 何时阅读 |
 |------|--------|------|----------|
 | `AGENTS.md` (本文件) | ★★★★★ | AI 智能体首要上下文 | 每个会话开始 |
+| `docs/WORKFLOW.md` | ★★★★★ | SDD 工作流、状态管理、提交规范、质量门禁 | 每个会话开始 |
 | `docs/ROADMAP.md` | ★★★★★ | 当前阶段、里程碑步骤、退出标准 | 开始任何工作之前 |
+| `docs/AUDIT.md` | ★★★★★ | 当前状态、已知问题、待办事项 | 开始任何工作之前 |
 | `docs/ARCHITECTURE.md` | ★★★★★ | 完整架构、crate 结构、数据流、线程模型、技术版本锁定表 | 修改任何 crate 时 |
 | `docs/SPECIFICATION.md` | ★★★★★ | VT 标准覆盖、性能目标、合规测试 | 实现 VT 功能或优化时 |
 | `docs/ADR/004-pty-implementation.md` | ★★★★★ | 为什么 nix crate forkpty、不用 portable-pty、W^X 方案 | 修改 PTY 时 |
