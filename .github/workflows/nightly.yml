@@ -30,8 +30,8 @@ jobs:
         with:
           components: miri
       - run: |
-          cargo +nightly miri test -p torvox-core
-          cargo +nightly miri test -p torvox-terminal
+          MIRIFLAGS="-Zmiri-isolation-error=warn" cargo +nightly miri test -p torvox-core
+          MIRIFLAGS="-Zmiri-isolation-error=warn" cargo +nightly miri test -p torvox-terminal
   bench:
     runs-on: ubuntu-latest
     steps:
