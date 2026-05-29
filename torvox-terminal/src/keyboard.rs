@@ -408,6 +408,7 @@ impl Default for InputEngine {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use proptest::prelude::*;
 
     #[test]
     fn modifiers_default_empty() {
@@ -734,7 +735,6 @@ mod tests {
             alt in proptest::bool::ANY,
             ctrl in proptest::bool::ANY,
         ) {
-            use proptest::prelude::*;
             let mut engine = InputEngine::new();
             if shift { engine.set_modifier(Modifiers::SHIFT, true); }
             if alt { engine.set_modifier(Modifiers::ALT, true); }
@@ -749,7 +749,6 @@ mod tests {
             shift in proptest::bool::ANY,
             alt in proptest::bool::ANY,
         ) {
-            use proptest::prelude::*;
             let mut engine = InputEngine::new();
             if shift { engine.set_modifier(Modifiers::SHIFT, true); }
             if alt { engine.set_modifier(Modifiers::ALT, true); }
@@ -783,7 +782,6 @@ mod tests {
         fn kitty_protocol_output_is_valid_utf8(
             ch in 0x20u32..0x7E,
         ) {
-            use proptest::prelude::*;
             let mut engine = InputEngine::new();
             engine.set_kitty_protocol(true);
             let c = char::from_u32(ch).unwrap_or('x');

@@ -36,7 +36,6 @@
             "rustfmt"
           ];
           rustToolchainAndroid = pkgs.fenix.combine [
-            pkgs.fenix.targets
             pkgs.fenix.targets.aarch64-linux-android.stable.rust-std
             pkgs.fenix.targets.x86_64-linux-android.stable.rust-std
           ];
