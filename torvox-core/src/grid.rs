@@ -140,15 +140,23 @@ impl Grid {
         if count <= 1 {
             return;
         }
-        let removed = self.lines.remove(top as usize);
+        let t = top as usize;
+        let b = bottom as usize;
+        // Save scrolled-out line to scrollback if scrolling from top
         if top == 0 {
+            let removed = self.lines.remove(t);
             self.scrollback.push(removed);
             if self.scrollback.len() > self.max_scrollback {
                 let excess = self.scrollback.len() - self.max_scrollback;
                 self.scrollback.drain(..excess);
             }
+            self.lines.insert(b - 1, Line::new(cols));
+        } else {
+            // Rotate left: first element moves to end (scroll up)
+            self.lines[t..b].rotate_left(1);
+            // Replace the last element (which is now the scrolled-in line) with blank
+            *self.lines.last_mut().unwrap() = Line::new(cols);
         }
-        self.lines.insert(bottom as usize - 1, Line::new(cols));
         for row in top..bottom {
             self.dirty.mark(row);
         }
@@ -158,8 +166,12 @@ impl Grid {
         if top >= bottom || bottom > self.rows {
             return;
         }
-        self.lines.remove(bottom as usize - 1);
-        self.lines.insert(top as usize, Line::new(cols));
+        let t = top as usize;
+        let b = bottom as usize;
+        // Rotate right: last element moves to front (scroll down)
+        self.lines[t..b].rotate_right(1);
+        // Replace the first element (which is now the scrolled-in line) with blank
+        *self.lines.get_mut(t).unwrap() = Line::new(cols);
         for row in top..bottom {
             self.dirty.mark(row);
         }
@@ -170,9 +182,13 @@ impl Grid {
             return;
         }
         let actual = count.min(bottom - at);
-        for _ in 0..actual {
-            self.lines.remove(bottom as usize - 1);
-            self.lines.insert(at as usize, Line::new(cols));
+        let a = at as usize;
+        let b = bottom as usize;
+        // Rotate left: insert blank lines at `at`, push existing lines down
+        self.lines[a..b].rotate_right(actual as usize);
+        // Fill the inserted lines (now at the beginning of the slice) with blank
+        for i in a..a + actual as usize {
+            *self.lines.get_mut(i).unwrap() = Line::new(cols);
         }
         for row in at..bottom {
             self.dirty.mark(row);
@@ -184,9 +200,13 @@ impl Grid {
             return;
         }
         let actual = count.min(bottom - at);
-        for _ in 0..actual {
-            self.lines.remove(at as usize);
-            self.lines.insert(bottom as usize - 1, Line::new(cols));
+        let a = at as usize;
+        let b = bottom as usize;
+        // Rotate left: delete lines at `at`, pull lines up from below
+        self.lines[a..b].rotate_left(actual as usize);
+        // Fill the deleted lines (now at the end of the slice) with blank
+        for i in b - actual as usize..b {
+            *self.lines.get_mut(i).unwrap() = Line::new(cols);
         }
         for row in at..bottom {
             self.dirty.mark(row);
