@@ -19,8 +19,8 @@ NC='\033[0m'
 
 log() { echo -e "${GREEN}[OK]${NC} $1"; }
 fail() {
-	echo -e "${RED}[FAIL]${NC} $1"
-	exit 1
+  echo -e "${RED}[FAIL]${NC} $1"
+  exit 1
 }
 
 mkdir -p "$RESULTS_DIR"

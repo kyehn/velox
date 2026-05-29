@@ -92,6 +92,14 @@
             android-tools
             androidSdkPkgs.androidsdk
           ];
+          lintDeps = with pkgs; [
+            nushell
+            taplo
+            yamlfmt
+            shfmt
+            typos
+            nodePackages.markdownlint-cli
+          ];
         in
         {
           _module.args.pkgs = import nixpkgs {
@@ -106,10 +114,141 @@
             ];
           };
 
+          # 多语言格式化器
+          # 使用: nix fmt (格式化) 或 nix fmt -- --check (检查)
+          formatter = pkgs.nixfmt-tree.override {
+            nixfmtPackage = pkgs.nixfmt-rs;
+            runtimeInputs = with pkgs; [
+              taplo
+              yamlfmt
+              shfmt
+            ];
+            settings.formatter = {
+              toml = {
+                command = "taplo";
+                options = [ "format" ];
+                includes = [ "*.toml" ];
+              };
+              yaml = {
+                command = "yamlfmt";
+                includes = [
+                  "*.yaml"
+                  "*.yml"
+                ];
+              };
+              shell = {
+                command = "shfmt";
+                options = [
+                  "-w"
+                  "-i"
+                  "2"
+                  "-ci"
+                ];
+                includes = [
+                  "*.sh"
+                  "*.bash"
+                ];
+              };
+              rust = {
+                command = "rustfmt";
+                options = [
+                  "--config"
+                  "skip_children=true"
+                  "--edition"
+                  "2024"
+                  "--style-edition"
+                  "2024"
+                ];
+                includes = [ "*.rs" ];
+              };
+            };
+          };
+
+          # 质量检查 (nix flake check)
+          checks =
+            let
+              clippyCheck =
+                pkgs.runCommand "clippy"
+                  {
+                    nativeBuildInputs = [
+                      rustToolchain
+                      pkgs.cargo-nextest
+                      nativeDeps
+                    ];
+                    RUST_SRC_PATH = "${rustToolchain}/lib/rustlib/src/rust/library";
+                    LD_LIBRARY_PATH = pkgs.lib.makeLibraryPath nativeDeps;
+                  }
+                  ''
+                    cd ${../.}
+                    cargo clippy -- -D warnings
+                    touch $out
+                  '';
+
+              fmtCheck =
+                pkgs.runCommand "fmt"
+                  {
+                    nativeBuildInputs = [ rustToolchain ];
+                  }
+                  ''
+                    cd ${../.}
+                    cargo fmt --check
+                    touch $out
+                  '';
+
+              testCheck =
+                pkgs.runCommand "tests"
+                  {
+                    nativeBuildInputs = [
+                      rustToolchain
+                      pkgs.cargo-nextest
+                      nativeDeps
+                    ];
+                    RUST_SRC_PATH = "${rustToolchain}/lib/rustlib/src/rust/library";
+                    LD_LIBRARY_PATH = pkgs.lib.makeLibraryPath nativeDeps;
+                  }
+                  ''
+                    cd ${../.}
+                    cargo nextest run --workspace
+                    touch $out
+                  '';
+
+              typosCheck =
+                pkgs.runCommand "typos"
+                  {
+                    nativeBuildInputs = [ pkgs.typos ];
+                  }
+                  ''
+                    cd ${../.}
+                    typos
+                    touch $out
+                  '';
+
+              nixfmtCheck =
+                pkgs.runCommand "nixfmt"
+                  {
+                    nativeBuildInputs = [ pkgs.nixfmt-rs ];
+                  }
+                  ''
+                    cd ${../.}
+                    find . -name "*.nix" -not -path "./target/*" -not -path "./.git/*" \
+                      -exec nixfmt --check {} +
+                    touch $out
+                  '';
+            in
+            {
+              inherit
+                clippyCheck
+                fmtCheck
+                testCheck
+                typosCheck
+                nixfmtCheck
+                ;
+            };
+
           devShells = {
             default = pkgs.mkShell {
               name = "torvox-dev";
-              packages = nativeDeps ++ rustDeps ++ androidDeps;
+              packages = nativeDeps ++ rustDeps ++ androidDeps ++ lintDeps;
               env = {
                 LD_LIBRARY_PATH = pkgs.lib.makeLibraryPath nativeDeps;
                 RUST_SRC_PATH = "${rustToolchain}/lib/rustlib/src/rust/library";
@@ -126,13 +265,14 @@
                 echo "Kotlin: $(kotlin -version 2>&1 | head -1 || echo N/A)"
                 echo "Gradle: $(gradle --version 2>/dev/null | grep '^Gradle' || echo N/A)"
                 echo "JDK: $(java -version 2>&1 | head -1)"
+                echo "Nushell: $(nu --version 2>/dev/null || echo N/A)"
+                echo "Typos: $(typos --version 2>/dev/null || echo N/A)"
                 echo "ANDROID_HOME: $ANDROID_HOME"
                 echo ""
-                echo "Quick start:"
-                echo " cargo build --workspace"
-                echo " cargo nextest run --workspace"
-                echo " cargo clippy -- -D warnings"
-                echo " cd android && ./gradlew assembleDebug"
+                echo "格式化: nix fmt"
+                echo "检查: nix flake check"
+                echo "构建: cargo build --workspace"
+                echo "测试: cargo nextest run --workspace"
               '';
             };
             emulator = pkgs.mkShell {
@@ -141,6 +281,7 @@
                 nativeDeps
                 ++ rustDeps
                 ++ androidDeps
+                ++ lintDeps
                 ++ [
                   androidEmuSdkPkgs.androidsdk
                   pkgs.qemu

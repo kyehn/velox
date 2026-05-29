@@ -5,6 +5,51 @@
 
 ---
 
+## 〇、环境要求
+
+**必须使用 nix 管理的开发环境。不要在系统 shell 中直接运行构建命令。**
+
+```bash
+# 进入开发环境 (所有工具可用)
+nix develop
+
+# 运行命令
+nix develop --command cargo build --workspace
+nix develop --command cargo nextest run --workspace
+
+# 格式化所有文件
+nix fmt
+
+# 运行所有检查
+nix flake check --no-build
+```
+
+**为什么用 nix？**
+- 环境完全可复现，不依赖系统安装
+- 所有工具版本锁定，不会因系统更新而破坏
+- CI 和本地环境完全一致
+- `nix fmt` 格式化所有语言 (Rust, TOML, YAML, Shell)
+- `nix flake check` 运行所有质量检查 (clippy, tests, typos, fmt)
+
+**可用工具 (在 nix develop 中)**:
+| 工具 | 用途 |
+|------|------|
+| `cargo` | Rust 构建 |
+| `cargo-nextest` | 测试运行器 |
+| `cargo-clippy` | Rust lint |
+| `rustfmt` | Rust 格式化 |
+| `taplo` | TOML 格式化 |
+| `shfmt` | Shell 格式化 |
+| `yamlfmt` | YAML 格式化 |
+| `typos` | 拼写检查 |
+| `ktfmt` | Kotlin 格式化 |
+| `ktlint` | Kotlin lint |
+| `nushell` | 结构化 shell |
+| `gradle` | Android 构建 |
+| `kotlin` | Kotlin 编译 |
+
+---
+
 ## 一、规范驱动开发 (SDD) 核心原则
 
 ### 1.1 核心理念
@@ -226,8 +271,10 @@ docs/
 
 1. 读取 AGENTS.md (项目上下文)
 2. 读取 AUDIT.md (当前状态)
-3. 读取 SPECIFICATION.md (规范)
-4. 确认当前阶段可达
+3. 读取 WORKFLOW.md (本文件)
+4. 读取 SPECIFICATION.md (规范)
+5. 确认当前阶段可达
+6. **确保在 nix 环境中运行命令**
 
 ### 6.2 实现流程
 
@@ -257,21 +304,46 @@ docs/
 
 ## 七、质量门禁
 
-### 7.1 每次提交
+### 7.1 所有检查 (推荐)
 
 ```bash
+# 一次性运行所有检查
+nix flake check --no-build
+```
+
+这会运行:
+- clippy (Rust lint)
+- fmt (Rust 格式化)
+- tests (所有测试)
+- typos (拼写检查)
+- nixfmt (Nix 格式化)
+
+### 7.2 格式化
+
+```bash
+# 格式化所有文件
+nix fmt
+
+# 仅检查不修改
+nix fmt -- --fail-on-change
+```
+
+### 7.3 单独运行
+
+```bash
+# Rust 检查
 cargo clippy -- -D warnings
 cargo test --workspace
 cargo fmt --check
+
+# 拼写检查
+typos
+
+# Shell 格式化
+shfmt -w -i 2 -ci scripts/*.sh
 ```
 
-### 7.2 阶段完成
-
-```bash
-./scripts/quality-gate.sh
-```
-
-### 7.3 文档检查
+### 7.4 文档检查
 
 - [ ] AUDIT.md 是否反映当前状态?
 - [ ] SPECIFICATION.md 是否与代码一致?
@@ -298,20 +370,18 @@ cargo fmt --check
 
 ## 九、执行计划
 
-### 9.1 立即执行
+### 9.1 已完成
 
 1. ✅ 本文件 (WORKFLOW.md) — 工作流定义
 2. ✅ 更新 AUDIT.md — 反映当前状态
 3. ✅ 更新 AGENTS.md — 引用本文件
+4. ✅ flake.nix — 添加 formatter/checks
+5. ✅ scripts — shfmt 格式化
 
-### 9.2 本阶段执行
-
-1. 更新 SPECIFICATION.md — 添加结构化验收标准
-2. 为每个 ADR 添加状态标记
-3. 建立问题分类和优先级体系
-
-### 9.3 持续执行
+### 9.2 持续执行
 
 1. 每次代码变更同步更新文档
 2. 每次发现新问题记录到 AUDIT.md
 3. 每次重要决策创建 ADR
+4. 使用 `nix fmt` 格式化代码
+5. 使用 `nix flake check` 验证质量
