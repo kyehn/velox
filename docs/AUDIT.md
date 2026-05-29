@@ -1,7 +1,7 @@
 # Torvox 审计报告
 
 > 日期: 2026-05-29
-> 测试: 225 全部通过 | Clippy: 零警告
+> 测试: 225 全部通过 | Clippy: 零警告 | Android lint: 通过 | Android release build: 成功
 
 ## 一、当前完成状态
 
@@ -31,7 +31,6 @@
 2. **FontConfig 缺少 Default** — config.rs 中 FontConfig 无 Default 实现，size 与 RenderConfig.font_size 重复。
 3. **ClipboardRequest(String) 语义不清** — event.rs 中该变体仅传递字符串，改为结构体更清晰。
 4. **torvox-terminal/src/grid.rs 有 #[allow(dead_code)]** — 逐字段控制 dead_code 更精确。
-5. **CI 配置问题** — nightly.yml fuzz matrix 名称不匹配、cargo fuzz 缺 --fuzz-dir、MIRI 使用已弃用的 -Zmiri-tag-raw-pointers。
 
 ## 三、代码质量
 
@@ -43,6 +42,8 @@
 | unwrap(库代码) | 0 (全部改为expect或if-let) |
 | Clippy | 零警告 |
 | 格式化 | 通过 |
+| Android lint | 通过 |
+| Android release build | 成功 (debug签名) |
 
 ## 四、TerminalEvent 变体数量
 
@@ -66,6 +67,6 @@ OutputReady 不在 bridge 中 — 它是内部事件，不暴露给 Kotlin。
 ## 六、下一步
 
 1. **P2.1 回滚缓冲UI** — Grid scrollback已就绪，需Kotlin触摸滚动+fling手势
-2. **CI修复** — 修正fuzz matrix名称、添加--fuzz-dir、更新MIRI标志
-3. **Kitty push/pop/restore** — 完善键盘协议支持
-4. **模糊测试** — 在CI nightly中运行cargo-fuzz
+2. **Kitty push/pop/restore** — 完善键盘协议支持
+3. **模糊测试** — 在CI nightly中运行cargo-fuzz
+4. **确定性回放测试** — PTY输出序列化→回放→断言
