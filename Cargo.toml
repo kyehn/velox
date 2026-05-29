@@ -6,7 +6,7 @@ members = [
   "torvox-renderer",
   "torvox-gui-android",
   "torvox-exec",
-  "torvox-fuzz",
+  "torvox-fuzz/fuzz",
   "torvox-integration-tests",
   "torvox-bench",
 ]
