@@ -125,11 +125,32 @@ impl From<torvox_core::config::TerminalConfig> for TerminalConfig {
 #[derive(Debug, Clone, uniffi::Enum)]
 pub enum TerminalEvent {
     Bell,
-    TitleChanged { title: String },
-    ClipboardRequest { text: String },
-    HyperlinkHover { url: Option<String> },
-    ProcessExited { exit_code: i32 },
-    DirtyRegion { start_row: u32, end_row: u32 },
+    TitleChanged {
+        title: String,
+    },
+    ClipboardRequest {
+        text: String,
+    },
+    HyperlinkHover {
+        url: Option<String>,
+    },
+    ProcessExited {
+        exit_code: i32,
+    },
+    DirtyRegion {
+        start_row: u32,
+        end_row: u32,
+    },
+    CursorChanged {
+        row: u32,
+        col: u32,
+    },
+    SelectionChanged {
+        start_row: u32,
+        start_col: u32,
+        end_row: u32,
+        end_col: u32,
+    },
 }
 
 impl From<torvox_core::event::TerminalEvent> for TerminalEvent {
@@ -152,13 +173,28 @@ impl From<torvox_core::event::TerminalEvent> for TerminalEvent {
             torvox_core::event::TerminalEvent::ProcessExited(c) => {
                 TerminalEvent::ProcessExited { exit_code: c }
             }
-            torvox_core::event::TerminalEvent::CursorChanged(_) => TerminalEvent::DirtyRegion {
-                start_row: 0,
-                end_row: 0,
-            },
-            torvox_core::event::TerminalEvent::SelectionChanged(_) => TerminalEvent::DirtyRegion {
-                start_row: 0,
-                end_row: 0,
+            torvox_core::event::TerminalEvent::CursorChanged(cursor) => {
+                TerminalEvent::CursorChanged {
+                    row: cursor.row,
+                    col: cursor.col,
+                }
+            }
+            torvox_core::event::TerminalEvent::SelectionChanged(sel) => match sel {
+                Some(s) => {
+                    let (lo, hi) = s.ordered();
+                    TerminalEvent::SelectionChanged {
+                        start_row: lo.row,
+                        start_col: lo.col,
+                        end_row: hi.row,
+                        end_col: hi.col,
+                    }
+                }
+                None => TerminalEvent::SelectionChanged {
+                    start_row: 0,
+                    start_col: 0,
+                    end_row: 0,
+                    end_col: 0,
+                },
             },
             torvox_core::event::TerminalEvent::DirtyRegion(dr) => TerminalEvent::DirtyRegion {
                 start_row: dr.start_row,
@@ -179,13 +215,17 @@ pub enum TerminalError {
 #[derive(uniffi::Object)]
 pub struct TorvoxBridge {
     config: TerminalConfig,
+    surface: std::sync::Mutex<Option<crate::surface::AndroidSurface>>,
 }
 
 #[uniffi::export]
 impl TorvoxBridge {
     #[uniffi::constructor]
     fn new(config: TerminalConfig) -> Self {
-        Self { config }
+        Self {
+            config,
+            surface: std::sync::Mutex::new(None),
+        }
     }
 
     fn ping(&self) -> String {
@@ -205,6 +245,51 @@ impl TorvoxBridge {
                 }
             })?;
         Ok(pty.child_pid().as_raw())
+    }
+
+    fn set_native_window(&self, window_ptr: i64) -> Result<(), TerminalError> {
+        let mut surface_guard = self.surface.lock().map_err(|e| TerminalError::PtyError {
+            detail: format!("lock failed: {}", e),
+        })?;
+        if surface_guard.is_none() {
+            let mut surface =
+                crate::surface::AndroidSurface::new(self.config.rows, self.config.cols);
+            surface
+                .set_native_window(window_ptr as *mut std::ffi::c_void)
+                .map_err(|e| TerminalError::PtyError {
+                    detail: e.to_string(),
+                })?;
+            *surface_guard = Some(surface);
+        }
+        Ok(())
+    }
+
+    fn render(&self) -> Result<(), TerminalError> {
+        let mut surface_guard = self.surface.lock().map_err(|e| TerminalError::PtyError {
+            detail: format!("lock failed: {}", e),
+        })?;
+        if let Some(surface) = surface_guard.as_mut() {
+            surface.render().map_err(|e| TerminalError::PtyError {
+                detail: e.to_string(),
+            })?;
+        }
+        Ok(())
+    }
+
+    fn resize(&self, rows: u32, cols: u32) -> Result<(), TerminalError> {
+        let mut surface_guard = self.surface.lock().map_err(|e| TerminalError::PtyError {
+            detail: format!("lock failed: {}", e),
+        })?;
+        if let Some(surface) = surface_guard.as_mut() {
+            surface.resize(rows, cols);
+        }
+        Ok(())
+    }
+
+    fn release_surface(&self) {
+        if let Ok(mut guard) = self.surface.lock() {
+            *guard = None;
+        }
     }
 
     fn get_config(&self) -> TerminalConfig {

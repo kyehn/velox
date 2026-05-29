@@ -725,4 +725,70 @@ mod tests {
         let result = engine.process_key(KeyEvent::Special(SpecialKey::Up), KeyAction::Press);
         assert_eq!(result, b"\x1b[1;3A");
     }
+
+    proptest::proptest! {
+        #[test]
+        fn process_key_never_panics_char(
+            ch in 0x20u32..0x7E,
+            shift in proptest::bool::ANY,
+            alt in proptest::bool::ANY,
+            ctrl in proptest::bool::ANY,
+        ) {
+            use proptest::prelude::*;
+            let mut engine = InputEngine::new();
+            if shift { engine.set_modifier(Modifiers::SHIFT, true); }
+            if alt { engine.set_modifier(Modifiers::ALT, true); }
+            if ctrl { engine.set_modifier(Modifiers::CTRL, true); }
+            let c = char::from_u32(ch).unwrap_or('x');
+            let _ = engine.process_key(KeyEvent::Char(c), KeyAction::Press);
+        }
+
+        #[test]
+        fn process_key_never_panics_special(
+            key in 0u8..=20,
+            shift in proptest::bool::ANY,
+            alt in proptest::bool::ANY,
+        ) {
+            use proptest::prelude::*;
+            let mut engine = InputEngine::new();
+            if shift { engine.set_modifier(Modifiers::SHIFT, true); }
+            if alt { engine.set_modifier(Modifiers::ALT, true); }
+            let special = match key % 21 {
+                0 => SpecialKey::Enter,
+                1 => SpecialKey::Tab,
+                2 => SpecialKey::Backspace,
+                3 => SpecialKey::Escape,
+                4 => SpecialKey::Up,
+                5 => SpecialKey::Down,
+                6 => SpecialKey::Left,
+                7 => SpecialKey::Right,
+                8 => SpecialKey::Home,
+                9 => SpecialKey::End,
+                10 => SpecialKey::PageUp,
+                11 => SpecialKey::PageDown,
+                12 => SpecialKey::Insert,
+                13 => SpecialKey::Delete,
+                14 => SpecialKey::F1,
+                15 => SpecialKey::F5,
+                16 => SpecialKey::F12,
+                17 => SpecialKey::Space,
+                18 => SpecialKey::F2,
+                19 => SpecialKey::F10,
+                _ => SpecialKey::F20,
+            };
+            let _ = engine.process_key(KeyEvent::Special(special), KeyAction::Press);
+        }
+
+        #[test]
+        fn kitty_protocol_output_is_valid_utf8(
+            ch in 0x20u32..0x7E,
+        ) {
+            use proptest::prelude::*;
+            let mut engine = InputEngine::new();
+            engine.set_kitty_protocol(true);
+            let c = char::from_u32(ch).unwrap_or('x');
+            let result = engine.process_key(KeyEvent::Char(c), KeyAction::Press);
+            prop_assert!(!result.is_empty(), "kitty output should not be empty");
+        }
+    }
 }

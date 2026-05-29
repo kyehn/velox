@@ -1,8 +1,8 @@
 # Torvox 项目进度报告
 
-> 生成时间: 2026-05-29 (深度审计 + 架构重构更新)
-> 代码行数: ~6,000 行 Rust
-> 测试数量: 220 个 (78 core + 7 android + 10 renderer + 125 terminal)
+> 生成时间: 2026-05-29 (深度审计 + 完整修复)
+> 代码行数: ~6,200 行 Rust + Kotlin
+> 测试数量: 223 个 (78 core + 128 terminal + 10 renderer + 7 android)
 > Clippy 状态: 零警告
 
 ---
@@ -58,9 +58,10 @@ L4 模糊测试: 待实现 (torvox-fuzz 空)
 | `torvox-core/unicode.rs` | 10 | Unicode 宽度、CJK 检测 |
 | `torvox-core/selection.rs` | 6 | Selection 范围、包含检查 |
 | `torvox-core/config.rs` | 4 | TerminalConfig 序列化 |
-| `torvox-terminal/terminal.rs` | 72 | CSI 光标/擦除/行操作/SGR、ESC/OSC |
-| `torvox-terminal/terminal.rs` (proptest) | 3 | 随机字节不崩溃、Grid 维度、DirtyMask |
+| `torvox-terminal/terminal.rs` | 76 | CSI 光标/擦除/行操作/SGR、ESC/OSC |
+| `torvox-terminal/terminal.rs` (proptest) | 5 | 随机字节不崩溃、Grid 维度、DirtyMask、scrollback、scroll_region |
 | `torvox-terminal/keyboard.rs` | 43 | Kitty/VT 编码、鼠标 SGR、括号粘贴 |
+| `torvox-terminal/keyboard.rs` (proptest) | 3 | 随机 key+modifier 不崩溃、特殊键不崩溃、kitty 输出非空 |
 | `torvox-terminal/pty.rs` | 4 | PTY spawn/read/write/drop |
 | `torvox-terminal/session.rs` | 5 | Session spawn/exit/echo/resize/write |
 | `torvox-renderer/font.rs` | 7 | 字体发现、字形光栅化、图集填充 |
