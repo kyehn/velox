@@ -8,3 +8,22 @@ license = "UNLICENSED"
 [dependencies]
 torvox-core = { workspace = true }
 torvox-terminal = { workspace = true }
+libfuzzer-sys = "0.4"
+
+[[bin]]
+name = "fuzz_vt_parser"
+path = "fuzz_targets/fuzz_vt_parser.rs"
+test = false
+bench = false
+
+[[bin]]
+name = "fuzz_osc_parse"
+path = "fuzz_targets/fuzz_osc_parse.rs"
+test = false
+bench = false
+
+[[bin]]
+name = "fuzz_grid_resize"
+path = "fuzz_targets/fuzz_grid_resize.rs"
+test = false
+bench = false
