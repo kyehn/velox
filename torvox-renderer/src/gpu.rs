@@ -596,9 +596,9 @@ pub fn build_cell_instances(
     atlas_width: f32,
     atlas_height: f32,
 ) -> Vec<CellInstance> {
-    let mut instances = Vec::new();
     let rows = grid.rows();
     let cols = grid.cols();
+    let mut instances = Vec::with_capacity((rows * cols) as usize);
 
     for row in 0..rows {
         if let Some(line) = grid.get(row) {

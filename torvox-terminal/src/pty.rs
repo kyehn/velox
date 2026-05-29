@@ -76,11 +76,9 @@ impl PtyPair {
                 for (key, value) in &env {
                     unsafe { std::env::set_var(key, value) };
                 }
-                nix::unistd::execvp(
-                    std::ffi::CString::new(shell).unwrap().as_c_str(),
-                    &[std::ffi::CString::new(shell).unwrap()],
-                )
-                .unwrap_err();
+                let c_shell = std::ffi::CString::new(shell).expect("shell path contains null byte");
+                let args = [c_shell.as_c_str()];
+                nix::unistd::execvp(c_shell.as_c_str(), &args).unwrap_err();
                 std::process::exit(1);
             }
         }

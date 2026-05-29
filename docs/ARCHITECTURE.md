@@ -81,7 +81,7 @@ torvox/
 ├── torvox-gui-android/      # Android GUI 桥接
 │   ├── src/
 │   │   ├── lib.rs          # crate 根, setup_scaffolding!()
-│ │ ├── bridge.rs # UniFFI 导出: TorvoxBridge, BridgeCell(+BridgeAttrs), Shell(Enum), TerminalConfig, TerminalEvent(6变体), TerminalError
+│ │ ├── bridge.rs # UniFFI 导出: TorvoxBridge, BridgeCell(+BridgeAttrs), Shell(Enum), TerminalConfig, TerminalEvent(8变体), TerminalError
 │   │   └── surface.rs      # wgpu → Android Surface 共享 (P1.5)
 │   ├── uniffi.toml         # UniFFI Kotlin 包名配置
 │   └── Cargo.toml
