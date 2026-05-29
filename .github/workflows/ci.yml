@@ -6,9 +6,6 @@ on:
 jobs:
   rust-checks:
     runs-on: ubuntu-latest
-    # SECURITY: All `@main`/`@master` action refs should be pinned to specific
-    # commit SHAs for supply chain security. Update SHAs after reviewing each
-    # action's release notes. This is a known risk that should be addressed.
     steps:
       - uses: actions/checkout@main
       - uses: dtolnay/rust-toolchain@stable
@@ -30,7 +27,7 @@ jobs:
         with:
           distribution: temurin
           java-version: 25
-      - uses: actions/setup-android-sdk@main
+      - uses: android-actions/setup-android@main
       - working-directory: android
         run: |
           ./gradlew lint --quiet
@@ -48,7 +45,7 @@ jobs:
         with:
           distribution: temurin
           java-version: 25
-      - uses: actions/setup-android-sdk@main
+      - uses: android-actions/setup-android@main
       - name: Build APK
         working-directory: android
         run: ./gradlew assembleDebug
