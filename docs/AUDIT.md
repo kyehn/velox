@@ -73,12 +73,24 @@
 
 无已知安全漏洞 (cargo audit clean)。
 
-## 六、下一步
+## 七、已决策事项
 
-1. **连接 PTY→渲染管线** — 将 Session 集成到 AndroidSurface，实现 PTY 输出→Grid→渲染器
-2. **实现渲染循环** — surfaceCreated → ANativeWindow → wgpu Surface
+| 决策 | 选择 | 理由 |
+|------|------|------|
+| 光标渲染 | GPU 渲染 (cursor.wgsl) | 与架构一致，性能更好 |
+| 回滚数据管线 | 共享内存/直接指针访问 | 更快，避免序列化开销 |
+| 渲染循环 | Rust 专用线程 | 与 ARCHITECTURE.md 一致，更可控 |
+| Release触发 | workflow_dispatch + tag push | 两者都支持 |
+| 测试基础设施 | 现在构建 (阶段 2) | 立即填充 fuzz/integration/bench |
+| 脚本文档 | 更新文档为 .nu | 保持一致性 |
+
+## 八、下一步
+
+1. **连接 PTY→渲染管线** — 将 Session 集成到 AndroidSurface
+2. **实现渲染循环** — Rust 专用线程 + ANativeWindow
 3. **实现 cursor.wgsl** — 光标 GPU 渲染
-4. **实现真实选择文本提取** — 从 Grid 提取选中文本
-5. **P2.3 修饰键栏** — Ctrl/Alt/Esc/Tab 屏幕修饰键
-6. **P2.4 字体+主题** — 字体大小调整，主题支持
-7. **P2.5 设置** — Jetpack Compose 设置屏幕
+4. **实现共享内存回滚数据管线** — 直接指针访问
+5. **构建测试基础设施** — 填充 fuzz/integration/bench targets
+6. **P2.3 修饰键栏** — Ctrl/Alt/Esc/Tab 屏幕修饰键
+7. **P2.4 字体+主题** — 字体大小调整，主题支持
+8. **P2.5 设置** — Jetpack Compose 设置屏幕
