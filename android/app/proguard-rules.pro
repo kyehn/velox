@@ -1,0 +1,2 @@
+-keep class com.sun.jna.** { *; }
+-keep class io.torvox.bridge.** { *; }

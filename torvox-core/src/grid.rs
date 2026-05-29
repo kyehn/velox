@@ -136,13 +136,12 @@ impl Grid {
         if top >= bottom || bottom > self.rows {
             return;
         }
-        let count = (bottom - top) as usize;
-        if count <= 1 {
+        let region_size = bottom - top;
+        if region_size <= 1 {
             return;
         }
         let t = top as usize;
         let b = bottom as usize;
-        // Save scrolled-out line to scrollback if scrolling from top
         if top == 0 {
             let removed = self.lines.remove(t);
             self.scrollback.push(removed);
@@ -152,10 +151,8 @@ impl Grid {
             }
             self.lines.insert(b - 1, Line::new(cols));
         } else {
-            // Rotate left: first element moves to end (scroll up)
             self.lines[t..b].rotate_left(1);
-            // Replace the last element (which is now the scrolled-in line) with blank
-            *self.lines.last_mut().unwrap() = Line::new(cols);
+            *self.lines.get_mut(b - 1).unwrap() = Line::new(cols);
         }
         for row in top..bottom {
             self.dirty.mark(row);
@@ -168,9 +165,7 @@ impl Grid {
         }
         let t = top as usize;
         let b = bottom as usize;
-        // Rotate right: last element moves to front (scroll down)
         self.lines[t..b].rotate_right(1);
-        // Replace the first element (which is now the scrolled-in line) with blank
         *self.lines.get_mut(t).unwrap() = Line::new(cols);
         for row in top..bottom {
             self.dirty.mark(row);

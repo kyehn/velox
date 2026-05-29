@@ -5,6 +5,9 @@ on:
 jobs:
   rust-checks:
     runs-on: ubuntu-latest
+    # SECURITY: All `@main`/`@master` action refs should be pinned to specific
+    # commit SHAs for supply chain security. Update SHAs after reviewing each
+    # action's release notes. This is a known risk that should be addressed.
     steps:
       - uses: actions/checkout@main
       - uses: dtolnay/rust-toolchain@stable

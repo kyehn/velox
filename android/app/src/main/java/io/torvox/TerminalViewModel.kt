@@ -19,4 +19,6 @@ class TerminalViewModel
     constructor() : ViewModel() {
         private val _state = MutableStateFlow(TerminalState())
         val state: StateFlow<TerminalState> = _state.asStateFlow()
+
+        // TODO: wire up to TerminalScreen
     }

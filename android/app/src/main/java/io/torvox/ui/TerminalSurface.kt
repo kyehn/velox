@@ -1,12 +1,13 @@
 package io.torvox.ui
 
 import android.content.Context
+import android.os.Handler
 import android.util.AttributeSet
 import android.view.GestureDetector
 import android.view.MotionEvent
-import android.view.ScaleGestureDetector
 import android.view.SurfaceHolder
 import android.view.SurfaceView
+import io.torvox.bridge.TorvoxBridge
 
 /**
  * SurfaceView with scrollback gesture support.
@@ -20,7 +21,7 @@ class TerminalSurface
         defStyleAttr: Int = 0,
     ) : SurfaceView(context, attrs, defStyleAttr),
         SurfaceHolder.Callback {
-        private var bridge: Any? = null
+        private var bridge: TorvoxBridge? = null
         private var rows: Int = 24
         private var cols: Int = 80
         private var isScrolling: Boolean = false
@@ -85,13 +86,6 @@ class TerminalSurface
             }
 
         private val gestureDetector = GestureDetector(context, gestureListener)
-        private val scaleGestureDetector =
-            ScaleGestureDetector(
-                context,
-                object : ScaleGestureDetector.SimpleOnScaleGestureListener() {
-                    override fun onScale(detector: ScaleGestureDetector): Boolean = false
-                },
-            )
 
         init {
             holder.addCallback(this)
@@ -99,7 +93,7 @@ class TerminalSurface
             isFocusableInTouchMode = true
         }
 
-        fun initialize(bridgeInstance: Any) {
+        fun initialize(bridgeInstance: TorvoxBridge) {
             this.bridge = bridgeInstance
         }
 
@@ -125,8 +119,7 @@ class TerminalSurface
         fun isCurrentlyScrolling(): Boolean = isScrolling
 
         override fun onTouchEvent(event: MotionEvent): Boolean {
-            var handled = scaleGestureDetector.onTouchEvent(event)
-            handled = gestureDetector.onTouchEvent(event) || handled
+            val handled = gestureDetector.onTouchEvent(event)
             return handled || super.onTouchEvent(event)
         }
 
@@ -142,5 +135,10 @@ class TerminalSurface
         override fun surfaceDestroyed(holder: SurfaceHolder) {
             isScrolling = false
             scrollOffset = 0
+        }
+
+        override fun onDetachedFromWindow() {
+            super.onDetachedFromWindow()
+            handler.removeCallbacksAndMessages(null)
         }
     }

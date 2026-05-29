@@ -160,8 +160,7 @@ class TerminalUiTest {
 
             downEvent.recycle()
             upEvent.recycle()
-            // No crash = pass
-            assertTrue(true)
+            assertNotNull("Activity should not be null", activity)
         }
     }
 
@@ -195,8 +194,7 @@ class TerminalUiTest {
             val upEvent = MotionEvent.obtain(0, 200, MotionEvent.ACTION_UP, centerX, endY, 0)
             contentView.dispatchTouchEvent(upEvent)
             upEvent.recycle()
-            // Scroll gesture processed without crash
-            assertTrue(true)
+            assertNotNull("Activity should not be null", activity)
         }
     }
 
@@ -270,8 +268,7 @@ class TerminalUiTest {
                 )
             contentView.dispatchTouchEvent(upEvent)
             upEvent.recycle()
-            // Multi-touch processed without crash
-            assertTrue(true)
+            assertNotNull("Activity should not be null", activity)
         }
     }
 

@@ -9,18 +9,18 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        target: [vt_parser, osc_parser, utf8_parser]
+        target: [fuzz_vt_parser, fuzz_osc_parse, fuzz_grid_resize]
     steps:
       - uses: actions/checkout@main
       - uses: dtolnay/rust-toolchain@nightly
       - run: |
           cargo install cargo-fuzz
-          cargo fuzz run ${{ matrix.target }} -- -max_total_time=3600
+          cargo fuzz run --fuzz-dir torvox-fuzz ${{ matrix.target }} -- -max_total_time=3600
       - if: failure()
         uses: actions/upload-artifact@master
         with:
           name: fuzz-crash-${{ matrix.target }}
-          path: fuzz/artifacts/
+          path: torvox-fuzz/artifacts/
   miri:
     runs-on: ubuntu-latest
     steps:
@@ -29,8 +29,8 @@ jobs:
         with:
           components: miri
       - run: |
-          MIRIFLAGS="-Zmiri-tag-raw-pointers" cargo miri test -p torvox-core
-          MIRIFLAGS="-Zmiri-tag-raw-pointers" cargo miri test -p torvox-terminal
+          cargo miri test -p torvox-core
+          cargo miri test -p torvox-terminal
   bench:
     runs-on: ubuntu-latest
     steps:
