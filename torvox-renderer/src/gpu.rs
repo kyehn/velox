@@ -435,7 +435,7 @@ pub fn orthographic_projection(width: f32, height: f32) -> [[f32; 4]; 4] {
 
 pub fn build_cell_instances(
     terminal: &torvox_terminal::terminal::TerminalState,
-    _font_pipeline: &crate::font::FontPipeline,
+    font_pipeline: &mut crate::font::FontPipeline,
     _cell_width: f32,
     _cell_height: f32,
     atlas_width: f32,
@@ -468,38 +468,31 @@ pub fn build_cell_instances(
                             flags: 0.0,
                             _pad: [0.0; 3],
                         });
-                    } else {
-                        let mut fp = crate::font::FontPipeline::new(
-                            atlas_width as i32,
-                            atlas_height as i32,
-                            14.0,
-                        );
-                        if let Some(info) = fp.glyph_info(cell.char) {
-                            let uv_x = info.atlas_x as f32 / atlas_width;
-                            let uv_y = info.atlas_y as f32 / atlas_height;
-                            let uv_w = info.width as f32 / atlas_width;
-                            let uv_h = info.height as f32 / atlas_height;
+                    } else if let Some(info) = font_pipeline.glyph_info(cell.char) {
+                        let uv_x = info.atlas_x as f32 / atlas_width;
+                        let uv_y = info.atlas_y as f32 / atlas_height;
+                        let uv_w = info.width as f32 / atlas_width;
+                        let uv_h = info.height as f32 / atlas_height;
 
-                            instances.push(CellInstance {
-                                cell_pos: [col as f32, row as f32],
-                                atlas_offset: [uv_x, uv_y],
-                                atlas_size: [uv_w, uv_h],
-                                fg_color: [
-                                    fg.r as f32 / 255.0,
-                                    fg.g as f32 / 255.0,
-                                    fg.b as f32 / 255.0,
-                                    1.0,
-                                ],
-                                bg_color: [
-                                    bg.r as f32 / 255.0,
-                                    bg.g as f32 / 255.0,
-                                    bg.b as f32 / 255.0,
-                                    1.0,
-                                ],
-                                flags: 0.0,
-                                _pad: [0.0; 3],
-                            });
-                        }
+                        instances.push(CellInstance {
+                            cell_pos: [col as f32, row as f32],
+                            atlas_offset: [uv_x, uv_y],
+                            atlas_size: [uv_w, uv_h],
+                            fg_color: [
+                                fg.r as f32 / 255.0,
+                                fg.g as f32 / 255.0,
+                                fg.b as f32 / 255.0,
+                                1.0,
+                            ],
+                            bg_color: [
+                                bg.r as f32 / 255.0,
+                                bg.g as f32 / 255.0,
+                                bg.b as f32 / 255.0,
+                                1.0,
+                            ],
+                            flags: 0.0,
+                            _pad: [0.0; 3],
+                        });
                     }
                 }
             }
