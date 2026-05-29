@@ -77,14 +77,15 @@
 
 | 决策 | 选择 | 理由 |
 |------|------|------|
-| VT解析器 | 保持 vte 0.15 | Alacritty维护，Paul Williams状态机，无更好替代 |
-| 通道库 | **迁移到 flume** | 更快，无unsafe，但API不同 |
+| VT解析器 | **迁移到 Ghostty VT** | SIMD优化，VT100-520完整兼容，但C/Zig FFI |
+| 通道库 | **迁移到 flume** | 更快，无unsafe |
 | GPU API | 保持 wgpu 29 | 跨平台，Android原生支持，WebGPU标准 |
 | 图集打包 | **迁移到 guillotière** | 相同作者，更现代的算法 |
-| 回滚数据管线 | SharedMemory + AtomicBool | 最快，Android SharedMemory API |
+| 回滚数据管线 | **Android SharedMemory API** | 最快，Kotlin直接读取 |
 | 渲染线程同步 | crossbeam::Notify | 更轻量的通知机制 |
 | Tag命名 | 语义化版本 v0.1.0 | 遵循semver |
-| 序列化格式 | **迁移到 rkyv** | 零拷贝反序列化 |
+| 序列化格式 | **迁移到 repr(C)+POD** | 零依赖，完全控制布局 |
+| Rust-Kotlin绑定 | **迁移到 BoltFFI** | 更快，零拷贝，但生态较小 |
 | 修饰键栏 | 底部固定栏 | 类似Termux，最简单 |
 | 光标渲染 | Block/Underline/Bar三种样式 | 标准终端光标样式 |
 | Release触发 | workflow_dispatch + tag push | 两者都支持 |
