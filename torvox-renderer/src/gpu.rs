@@ -408,6 +408,11 @@ impl GpuContext {
         Ok(())
     }
 
+    /// Create the GPU atlas texture.
+    ///
+    /// Format: `Rgba8UnormSrgb` — RGBA byte layout matches font.rs CPU bitmap output.
+    /// The "sRGB" suffix means the GPU applies sRGB gamma correction during sampling,
+    /// which is correct for font rendering (rasterizer produces linear alpha, GPU applies gamma).
     pub fn create_atlas_texture(&mut self, width: u32, height: u32) {
         let texture = self.device.create_texture(&wgpu::TextureDescriptor {
             label: Some("Atlas Texture"),

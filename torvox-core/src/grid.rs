@@ -96,6 +96,10 @@ impl Grid {
         self.dirty.clear();
     }
 
+    pub fn mark_all_dirty(&mut self) {
+        self.dirty.mark_all(self.rows);
+    }
+
     pub fn resize(&mut self, new_rows: u32, new_cols: u32) {
         self.lines.resize(new_rows as usize, Line::new(new_cols));
         for line in &mut self.lines {

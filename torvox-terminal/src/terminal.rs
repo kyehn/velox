@@ -414,6 +414,7 @@ impl TerminalState {
                 for r in 0..rows {
                     self.grid.clear_cells(r, 0, cols);
                 }
+                self.grid.mark_all_dirty();
                 self.cursor.move_to(0, 0);
             }
             2004 => {}
@@ -435,6 +436,7 @@ impl TerminalState {
             1049 => {
                 if let Some(alt) = self.alt_grid.take() {
                     self.grid = alt;
+                    self.grid.mark_all_dirty();
                     self.restore_cursor_position();
                 }
             }
