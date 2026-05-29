@@ -16,7 +16,7 @@ jobs:
       - run: |
           cd torvox-fuzz
           cargo install cargo-fuzz
-          cargo fuzz run ${{ matrix.target }} --fuzz-dir . -- -max_total_time=3600
+          cargo fuzz run ${{ matrix.target }} --fuzz-dir . -manifest-path ./Cargo.toml -- -max_total_time=3600
       - if: failure()
         uses: actions/upload-artifact@master
         with:
@@ -30,8 +30,8 @@ jobs:
         with:
           components: miri
       - run: |
-          cargo miri test -p torvox-core
-          cargo miri test -p torvox-terminal
+          cargo +nightly miri test -p torvox-core
+          cargo +nightly miri test -p torvox-terminal
   bench:
     runs-on: ubuntu-latest
     steps:
