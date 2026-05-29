@@ -14,23 +14,32 @@
 | P1.4 GPU渲染 | ✅ | wgpu v29, WGSL着色器 |
 | P1.5 Android Surface | ✅ | Rust surface.rs + Kotlin TerminalSurface.kt |
 | P1.6 输入处理 | ✅ | Kitty+VT传统+鼠标SGR, 43测试 |
-| P2.1 回滚缓冲UI | ⬜ | Grid scrollback已实现, Kotlin触摸滚动UI待完成 |
+| P2.1 回滚缓冲UI | ✅ | Grid scrollback + Kotlin触摸滚动+fling |
+| P2.2 选择 | ✅ | 长按选择+复制到剪贴板+链接检测 |
+| P2.3 修饰键栏 | ⬜ | 未开始 |
+| P2.4 字体+主题 | ⬜ | 未开始 |
+| P2.5 设置 | ⬜ | 未开始 |
 
 ## 二、已知问题
 
 ### 严重 (影响正确性)
-无。
+1. **PTY↔渲染管线未连接** — surface.rs:write_to_pty 是空操作。AndroidSurface 拥有 TerminalState 但无 Session — PTY输出永远到不了渲染器。
+2. **无渲染循环** — surfaceCreated/surfaceChanged 为空。无 ANativeWindow 传递给 Rust。
+3. **选择文本提取是占位符** — extractSelectedText 返回 "selection[row:col-row:col]" 而非实际网格文本。
 
 ### 重要 (影响质量)
-1. **Kitty push/pop/restore 未实现** — keyboard.rs 仅编码基础 CSI u，缺少 push/pop 配置、save/restore 操作。依赖 Kitty 终端的应用可能行为不正确。
-2. **VT 解析器无模糊测试** — cargo-fuzz 骨架已建 (torvox-fuzz)，但未在 CI 中运行。边缘输入可能 panic。
-3. **无确定性回放测试** — PTY 输出序列化→回放→断言的回归测试未实现。
+1. **Kitty push/pop/restore 未实现** — keyboard.rs 仅编码基础 CSI u。
+2. **VT 解析器无模糊测试** — cargo-fuzz 骨架已建但未在 CI 中运行。
+3. **无确定性回放测试** — PTY 输出序列化→回放→断言未实现。
+4. **CI配置问题** — nightly.yml fuzz targets 不存在，MIRI 对 terminal 不兼容。
+5. **Release工作流** — 触发于 push to main 而非 tag。
 
 ### 次要 (可改进)
-1. **Unicode 手写宽度表** — unicode.rs 自建宽度表，可考虑 unicode-width crate 替代，但非必要。
-2. **FontConfig 缺少 Default** — config.rs 中 FontConfig 无 Default 实现，size 与 RenderConfig.font_size 重复。
-3. **ClipboardRequest(String) 语义不清** — event.rs 中该变体仅传递字符串，改为结构体更清晰。
-4. **torvox-terminal/src/grid.rs 有 #[allow(dead_code)]** — 逐字段控制 dead_code 更精确。
+1. **Unicode 手写宽度表** — 可考虑 unicode-width crate 替代。
+2. **FontConfig 缺少 Default** — config.rs 中 FontConfig 无 Default 实现。
+3. **ClipboardRequest(String) 语义不清** — 改为结构体更清晰。
+4. **cursor.wgsl 不存在** — ARCHITECTURE.md 引用但文件不存在。
+5. **CI使用 @main 引用** — 应固定到 SHA 或 tag。
 
 ## 三、代码质量
 
@@ -44,6 +53,8 @@
 | 格式化 | 通过 |
 | Android lint | 通过 |
 | Android release build | 成功 (debug签名) |
+| Fuzz构建 | 成功 (本地验证) |
+| MIRI | 通过 (torvox-core) |
 
 ## 四、TerminalEvent 变体数量
 
@@ -51,8 +62,6 @@
 |------|------|------|
 | torvox-core (event.rs) | 9 | OutputReady, Bell, TitleChanged, ClipboardRequest, HyperlinkHover, ProcessExited, CursorChanged, SelectionChanged, DirtyRegion |
 | bridge.rs (UniFFI) | 8 | Bell, TitleChanged, ClipboardRequest, HyperlinkHover, ProcessExited, DirtyRegion, CursorChanged, SelectionChanged |
-
-OutputReady 不在 bridge 中 — 它是内部事件，不暴露给 Kotlin。
 
 ## 五、依赖审计
 
@@ -66,7 +75,10 @@ OutputReady 不在 bridge 中 — 它是内部事件，不暴露给 Kotlin。
 
 ## 六、下一步
 
-1. **P2.1 回滚缓冲UI** — Grid scrollback已就绪，需Kotlin触摸滚动+fling手势
-2. **Kitty push/pop/restore** — 完善键盘协议支持
-3. **模糊测试** — 在CI nightly中运行cargo-fuzz
-4. **确定性回放测试** — PTY输出序列化→回放→断言
+1. **连接 PTY→渲染管线** — 将 Session 集成到 AndroidSurface，实现 PTY 输出→Grid→渲染器
+2. **实现渲染循环** — surfaceCreated → ANativeWindow → wgpu Surface
+3. **实现 cursor.wgsl** — 光标 GPU 渲染
+4. **实现真实选择文本提取** — 从 Grid 提取选中文本
+5. **P2.3 修饰键栏** — Ctrl/Alt/Esc/Tab 屏幕修饰键
+6. **P2.4 字体+主题** — 字体大小调整，主题支持
+7. **P2.5 设置** — Jetpack Compose 设置屏幕
