@@ -79,17 +79,19 @@
                 "rustc"
                 "rustfmt"
               ];
+              native-dependencies = [
+                toolchain
+                pkgs.cargo-nextest
+                pkgs.pkg-config
+                pkgs.openssl
+              ];
+              copy-source = "cp -r ${./.} . && chmod -R u+w .";
             in
             {
               clippy =
                 pkgs.runCommand "check-clippy"
                   {
-                    nativeBuildInputs = [
-                      toolchain
-                      pkgs.cargo-nextest
-                      pkgs.pkg-config
-                      pkgs.openssl
-                    ];
+                    nativeBuildInputs = native-dependencies;
                     RUST_SRC_PATH = "${toolchain}/lib/rustlib/src/rust/library";
                     LD_LIBRARY_PATH = pkgs.lib.makeLibraryPath [
                       pkgs.pkg-config
@@ -97,7 +99,7 @@
                     ];
                   }
                   ''
-                    cp -r ${./.} . && chmod -R u+w .
+                    ${copy-source}
                     cargo clippy -- -D warnings
                     touch $out
                   '';
@@ -108,7 +110,7 @@
                     nativeBuildInputs = [ toolchain ];
                   }
                   ''
-                    cp -r ${./.} . && chmod -R u+w .
+                    ${copy-source}
                     cargo fmt --check
                     touch $out
                   '';
@@ -116,12 +118,7 @@
               tests =
                 pkgs.runCommand "check-tests"
                   {
-                    nativeBuildInputs = [
-                      toolchain
-                      pkgs.cargo-nextest
-                      pkgs.pkg-config
-                      pkgs.openssl
-                    ];
+                    nativeBuildInputs = native-dependencies;
                     RUST_SRC_PATH = "${toolchain}/lib/rustlib/src/rust/library";
                     LD_LIBRARY_PATH = pkgs.lib.makeLibraryPath [
                       pkgs.pkg-config
@@ -129,8 +126,24 @@
                     ];
                   }
                   ''
-                    cp -r ${./.} . && chmod -R u+w .
+                    ${copy-source}
                     cargo nextest run --workspace
+                    touch $out
+                  '';
+
+              proptest =
+                pkgs.runCommand "check-proptest"
+                  {
+                    nativeBuildInputs = native-dependencies;
+                    RUST_SRC_PATH = "${toolchain}/lib/rustlib/src/rust/library";
+                    LD_LIBRARY_PATH = pkgs.lib.makeLibraryPath [
+                      pkgs.pkg-config
+                      pkgs.openssl
+                    ];
+                  }
+                  ''
+                    ${copy-source}
+                    cargo test --workspace -- proptest
                     touch $out
                   '';
 
@@ -140,7 +153,7 @@
                     nativeBuildInputs = [ pkgs.typos ];
                   }
                   ''
-                    cp -r ${./.} . && chmod -R u+w .
+                    ${copy-source}
                     typos
                     touch $out
                   '';
@@ -151,11 +164,70 @@
                     nativeBuildInputs = [ pkgs.nixfmt-rs ];
                   }
                   ''
-                    cp -r ${./.} . && chmod -R u+w .
+                    ${copy-source}
                     find . -name '*.nix' \
                       -not -path './target/*' \
                       -not -path './.git/*' \
                       -exec nixfmt --check {} +
+                    touch $out
+                  '';
+
+              cargo-deny =
+                pkgs.runCommand "check-cargo-deny"
+                  {
+                    nativeBuildInputs = [
+                      toolchain
+                      pkgs.cargo-deny
+                    ];
+                  }
+                  ''
+                    ${copy-source}
+                    cargo deny check
+                    touch $out
+                  '';
+
+              cargo-audit =
+                pkgs.runCommand "check-cargo-audit"
+                  {
+                    nativeBuildInputs = [
+                      toolchain
+                      pkgs.cargo-audit
+                    ];
+                  }
+                  ''
+                    ${copy-source}
+                    cargo audit
+                    touch $out
+                  '';
+
+              cargo-machete =
+                pkgs.runCommand "check-cargo-machete"
+                  {
+                    nativeBuildInputs = [
+                      toolchain
+                      pkgs.cargo-machete
+                    ];
+                  }
+                  ''
+                    ${copy-source}
+                    cargo machete
+                    touch $out
+                  '';
+
+              markdownlint =
+                pkgs.runCommand "check-markdownlint"
+                  {
+                    nativeBuildInputs = [
+                      pkgs.nodePackages.markdownlint-cli
+                    ];
+                  }
+                  ''
+                    ${copy-source}
+                    find . -name '*.md' \
+                      -not -path './target/*' \
+                      -not -path './.git/*' \
+                      -not -path './.opencode/*' \
+                      -exec markdownlint {} +
                     touch $out
                   '';
             };

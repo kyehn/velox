@@ -17,7 +17,7 @@ jobs:
       - uses: Swatinem/rust-cache@master
       - run: |
           cargo fmt --check
-          cargo clippy --deny warnings --all-targets --all-features
+          cargo clippy --all-targets --all-features -- -D warnings
       - uses: taiki-e/install-action@nextest
       - run: |
           cargo nextest run --workspace
