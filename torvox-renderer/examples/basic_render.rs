@@ -40,6 +40,38 @@ impl App {
             atlas_height,
         }
     }
+
+    fn handle_resize(&mut self, size: winit::dpi::PhysicalSize<u32>) {
+        let gpu = match self.gpu.as_mut() {
+            Some(g) => g,
+            None => return,
+        };
+        let window = match self.window.as_ref() {
+            Some(w) => w,
+            None => return,
+        };
+        if let Some(config) = &mut gpu.surface_config {
+            config.width = size.width.max(1);
+            config.height = size.height.max(1);
+            if let Some(surface) = &gpu.surface {
+                surface.configure(&gpu.device, config);
+            }
+            let proj = torvox_renderer::gpu::orthographic_projection(
+                config.width as f32,
+                config.height as f32,
+            );
+            let uniforms = torvox_renderer::gpu::GpuUniforms {
+                projection: proj,
+                cell_size: [8.0, 16.0],
+                atlas_size: [self.atlas_width as f32, self.atlas_height as f32],
+            };
+            if let Some(buf) = &gpu.cell_uniform_buffer {
+                gpu.queue
+                    .write_buffer(buf, 0, bytemuck::cast_slice(&[uniforms]));
+            }
+            window.request_redraw();
+        }
+    }
 }
 
 impl ApplicationHandler for App {
@@ -108,33 +140,7 @@ impl ApplicationHandler for App {
                 }
             }
             WindowEvent::Resized(size) => {
-                if let (Some(gpu), Some(window)) = (&mut self.gpu, &self.window) {
-                    if let Some(config) = &mut gpu.surface_config {
-                        config.width = size.width.max(1);
-                        config.height = size.height.max(1);
-                        if let Some(surface) = &gpu.surface {
-                            surface.configure(&gpu.device, config);
-                        }
-
-                        let proj = torvox_renderer::gpu::orthographic_projection(
-                            config.width as f32,
-                            config.height as f32,
-                        );
-
-                        let uniforms = torvox_renderer::gpu::GpuUniforms {
-                            projection: proj,
-                            cell_size: [8.0, 16.0],
-                            atlas_size: [self.atlas_width as f32, self.atlas_height as f32],
-                        };
-
-                        if let Some(buf) = &gpu.cell_uniform_buffer {
-                            gpu.queue
-                                .write_buffer(buf, 0, bytemuck::cast_slice(&[uniforms]));
-                        }
-
-                        window.request_redraw();
-                    }
-                }
+                self.handle_resize(size);
             }
             _ => {}
         }

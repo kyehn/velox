@@ -75,19 +75,14 @@ mod session_lifecycle {
         while std::time::Instant::now() < deadline {
             session.process_output();
             let grid = session.terminal();
-            for row in 0..grid.rows() {
+            'outer: for row in 0..grid.rows() {
                 if let Some(line) = grid.grid.get(row) {
                     for col in 0..line.len() {
-                        if let Some(cell) = line.get(col) {
-                            if cell.char == 'o' {
-                                found = true;
-                                break;
-                            }
+                        if line.get(col).is_some_and(|c| c.char == 'o') {
+                            found = true;
+                            break 'outer;
                         }
                     }
-                }
-                if found {
-                    break;
                 }
             }
             if found {

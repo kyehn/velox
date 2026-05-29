@@ -214,7 +214,7 @@ mod tests {
                 Err(_) => break,
             }
             if output
-                .windows("hello_torvox".as_bytes().len())
+                .windows("hello_torvox".len())
                 .any(|w| w == b"hello_torvox")
             {
                 return;
