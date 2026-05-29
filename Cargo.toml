@@ -17,7 +17,7 @@ package.license = "UNLICENSED"
 [workspace.dependencies]
 torvox-core = { path = "torvox-core" }
 torvox-terminal = { path = "torvox-terminal" }
-torvox-renderer = { path = "torvox-renderer" }
+torvox-renderer = { path = "torvox-renderer", default-features = false }
 torvox-gui-android = { path = "torvox-gui-android" }
 
 vte = "0.15"
