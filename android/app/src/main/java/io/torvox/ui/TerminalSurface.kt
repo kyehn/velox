@@ -1,18 +1,14 @@
 package io.torvox.ui
 
 import android.content.Context
-import android.os.Handler
 import android.util.AttributeSet
 import android.view.GestureDetector
 import android.view.MotionEvent
 import android.view.SurfaceHolder
 import android.view.SurfaceView
-import io.torvox.bridge.TorvoxBridge
+import io.torvox.SelectionMode
+import io.torvox.TerminalViewModel
 
-/**
- * SurfaceView with scrollback gesture support.
- * Handles fling/scroll gestures for terminal scrollback navigation.
- */
 class TerminalSurface
     @JvmOverloads
     constructor(
@@ -21,7 +17,7 @@ class TerminalSurface
         defStyleAttr: Int = 0,
     ) : SurfaceView(context, attrs, defStyleAttr),
         SurfaceHolder.Callback {
-        private var bridge: TorvoxBridge? = null
+        private var viewModel: TerminalViewModel? = null
         private var rows: Int = 24
         private var cols: Int = 80
         private var isScrolling: Boolean = false
@@ -81,7 +77,14 @@ class TerminalSurface
                         onScrollingStateChanged?.invoke(false)
                         return true
                     }
+                    viewModel?.clearSelection()
                     return false
+                }
+
+                override fun onLongPress(e: MotionEvent) {
+                    val row = (e.y / 16f).toInt().coerceIn(0, rows - 1)
+                    val col = (e.x / 8f).toInt().coerceIn(0, cols - 1)
+                    viewModel?.startSelection(row, col)
                 }
             }
 
@@ -93,8 +96,8 @@ class TerminalSurface
             isFocusableInTouchMode = true
         }
 
-        fun initialize(bridgeInstance: TorvoxBridge) {
-            this.bridge = bridgeInstance
+        fun initialize(viewModel: TerminalViewModel) {
+            this.viewModel = viewModel
         }
 
         fun setDimensions(
@@ -120,6 +123,19 @@ class TerminalSurface
 
         override fun onTouchEvent(event: MotionEvent): Boolean {
             val handled = gestureDetector.onTouchEvent(event)
+            if (event.actionMasked == MotionEvent.ACTION_MOVE && viewModel
+                    ?.state
+                    ?.value
+                    ?.selection
+                    ?.active == true
+            ) {
+                val row = (event.y / 16f).toInt().coerceIn(0, rows - 1)
+                val col = (event.x / 8f).toInt().coerceIn(0, cols - 1)
+                viewModel?.updateSelection(row, col)
+            }
+            if (event.actionMasked == MotionEvent.ACTION_UP || event.actionMasked == MotionEvent.ACTION_CANCEL) {
+                viewModel?.endSelection()
+            }
             return handled || super.onTouchEvent(event)
         }
 
