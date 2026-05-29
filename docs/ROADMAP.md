@@ -264,12 +264,12 @@
 
 ### P2.2 — 选择
 
-1. 字符/词/行/块选择模式
-2. 放大镜精确选择 (Android Maginifier)
-3. 复制到剪贴板 (Android ClipboardManager)
-4. 检测到链接时打开 URL (Intent.ACTION_VIEW)
-5. OSC 8 超链接悬停高亮
-6. 语义选择 (OSC 133 Shell 集成)
+1. ✅ 字符/词/行/块选择模式 — SelectionMode枚举 + ViewModel状态管理
+2. ⬜ 放大镜精确选择 (Android Maginifier)
+3. ✅ 复制到剪贴板 (Android ClipboardManager) — TerminalViewModel.copySelectionToClipboard
+4. ⬜ 检测到链接时打开 URL (Intent.ACTION_VIEW) — TerminalViewModel.openUrl已实现
+5. ⬜ OSC 8 超链接悬停高亮
+6. ⬜ 语义选择 (OSC 133 Shell 集成)
 
 ### P2.3 — 修饰键栏
 
