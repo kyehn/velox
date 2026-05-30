@@ -1,9 +1,9 @@
-use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::Arc;
 use std::sync::{Condvar, Mutex};
 use std::time::Duration;
 
-use crossbeam::channel::{Receiver, bounded};
+use flume::{bounded, Receiver};
 use thiserror::Error;
 
 use crate::parser::VtParser;
