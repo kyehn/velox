@@ -46,6 +46,12 @@ fun TerminalScreen(
                             initialize(viewModel)
                             setDimensions(24, 80)
                             setMaxScrollback(50000)
+                            onSwipeLeft = {
+                                viewModel.writeToPty("\u001b".toByteArray())
+                            }
+                            onSwipeRight = {
+                                viewModel.writeToPty("\t".toByteArray())
+                            }
                         }
                     },
                     modifier = Modifier.fillMaxSize(),
