@@ -1,6 +1,7 @@
 use thiserror::Error;
 use torvox_renderer::font::FontPipeline;
 use torvox_renderer::gpu::GpuContext;
+use torvox_terminal::session::Session;
 use torvox_terminal::terminal::TerminalState;
 
 #[derive(Debug, Error)]
@@ -18,6 +19,7 @@ pub enum SurfaceError {
 pub struct AndroidSurface {
     gpu: GpuContext,
     font_pipeline: FontPipeline,
+    session: Option<Session>,
     terminal: TerminalState,
     atlas_width: u32,
     atlas_height: u32,
@@ -34,10 +36,18 @@ impl AndroidSurface {
         Self {
             gpu: GpuContext::new_with_no_surface(),
             font_pipeline,
+            session: None,
             terminal,
             atlas_width,
             atlas_height,
         }
+    }
+
+    pub fn spawn_session(&mut self, shell: &str) -> Result<(), SurfaceError> {
+        let session = Session::spawn(shell, self.terminal.rows(), self.terminal.cols())
+            .map_err(|e| SurfaceError::GpuInit(e.to_string()))?;
+        self.session = Some(session);
+        Ok(())
     }
 
     pub fn set_native_window(
@@ -61,6 +71,10 @@ impl AndroidSurface {
     }
 
     pub fn render(&mut self) -> Result<(), SurfaceError> {
+        if let Some(session) = &mut self.session {
+            session.process_output();
+        }
+
         let instances = torvox_renderer::gpu::build_cell_instances(
             &self.terminal.grid,
             &mut self.font_pipeline,
@@ -87,7 +101,9 @@ impl AndroidSurface {
         self.terminal.resize(rows, cols);
     }
 
-    pub fn write_to_pty(&mut self, _data: &[u8]) {
-        // Will be connected to PtyPair in integration
+    pub fn write_to_pty(&mut self, data: &[u8]) {
+        if let Some(session) = &mut self.session {
+            let _ = session.write(data);
+        }
     }
 }
