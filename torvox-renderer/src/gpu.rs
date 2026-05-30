@@ -628,6 +628,15 @@ pub fn build_cell_instances(
                         let uv_w = info.width as f32 / atlas_width;
                         let uv_h = info.height as f32 / atlas_height;
 
+                        let flags = if cell.attrs.bold { 1.0 } else { 0.0 }
+                            + if cell.attrs.italic { 2.0 } else { 0.0 }
+                            + if cell.attrs.reverse { 4.0 } else { 0.0 }
+                            + if cell.attrs.underline { 8.0 } else { 0.0 }
+                            + if cell.attrs.dim { 16.0 } else { 0.0 }
+                            + if cell.attrs.hidden { 32.0 } else { 0.0 }
+                            + if cell.attrs.strikethrough { 64.0 } else { 0.0 }
+                            + if cell.attrs.overline { 128.0 } else { 0.0 };
+
                         instances.push(CellInstance {
                             cell_pos: [col as f32, row as f32],
                             atlas_offset: [uv_x, uv_y],
@@ -644,6 +653,21 @@ pub fn build_cell_instances(
                                 bg.b as f32 / 255.0,
                                 1.0,
                             ],
+                            flags,
+                            _pad: [0.0; 3],
+                        });
+                    } else {
+                        instances.push(CellInstance {
+                            cell_pos: [col as f32, row as f32],
+                            atlas_offset: [0.0, 0.0],
+                            atlas_size: [0.0, 0.0],
+                            fg_color: [0.8, 0.8, 0.8, 1.0],
+                            bg_color: [
+                                bg.r as f32 / 255.0,
+                                bg.g as f32 / 255.0,
+                                bg.b as f32 / 255.0,
+                                1.0,
+                            ],
                             flags: 0.0,
                             _pad: [0.0; 3],
                         });
@@ -652,7 +676,6 @@ pub fn build_cell_instances(
             }
         }
     }
-
     instances
 }
 
