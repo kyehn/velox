@@ -883,6 +883,30 @@ impl vte::Perform for TerminalState {
             (b'0', [b'(']) => self.charsets[0] = Charset::SpecialGraphics,
             (b'B', [b')']) => self.charsets[1] = Charset::Ascii,
             (b'0', [b')']) => self.charsets[1] = Charset::SpecialGraphics,
+            (b'3', [b'#']) => {
+                let row = self.effective_row();
+                if let Some(line) = self.grid.get_mut(row) {
+                    line.attr = torvox_core::line::LineAttr::DoubleHeightTop;
+                }
+            }
+            (b'4', [b'#']) => {
+                let row = self.effective_row();
+                if let Some(line) = self.grid.get_mut(row) {
+                    line.attr = torvox_core::line::LineAttr::DoubleHeightBottom;
+                }
+            }
+            (b'5', [b'#']) => {
+                let row = self.effective_row();
+                if let Some(line) = self.grid.get_mut(row) {
+                    line.attr = torvox_core::line::LineAttr::Normal;
+                }
+            }
+            (b'6', [b'#']) => {
+                let row = self.effective_row();
+                if let Some(line) = self.grid.get_mut(row) {
+                    line.attr = torvox_core::line::LineAttr::DoubleWidth;
+                }
+            }
             (b'=', []) => {}
             (b'>', []) => {}
             (b'\\', []) => {}
