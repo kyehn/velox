@@ -139,3 +139,44 @@
 2. 然后 `boltffi generate kotlin` 从编译后的库提取 API
 3. 当前 `boltffi generate` 只生成运行时辅助代码 (WireReader/WireWriter)，不包含 API 类型
 4. 需要在 CI 或 Nix devshell 中完成此步骤
+
+---
+
+## 待决策问题 (2026-05-30 审计)
+
+### Q1: fontdb 版本不一致
+Cargo.toml 写 0.23，ARCHITECTURE.md 写 0.34。
+- A: 保持 0.23，修正文档 (零风险)
+- B: 升级到 0.34 (需适配 API 变更)
+- C: 修正文档为 0.23 (零风险)
+
+### Q2: flume 版本不一致
+Cargo.toml 写 0.11，ARCHITECTURE.md 写 0.12。
+- A: 升级到 0.12 (API 兼容，minor bump)
+- B: 保持 0.11，修正文档
+
+### Q3: boltffi vs UniFFI 绑定重新生成
+- A: 用 boltffi_cli 重新生成 (需 cargo-ndk 交叉编译)
+- B: 回退到 UniFFI (更成熟)
+- C: 手动 JNI 绑定
+
+### Q4: CI Actions 引用 @main
+- A: 固定到 v4 tag + Dependabot
+- B: 固定到 commit SHA
+- C: 保持 @main
+
+### Q5: no_std 构建加入 CI
+- A: 加入 CI (~30s)
+- B: 仅本地验证
+
+### Q6: 子 crate workspace 继承
+- A: 使用 version.workspace = true 等 (Cargo 最佳实践)
+- B: 保持当前重复定义
+
+### Q7: torvox-exec 加入 CI release
+- A: 加入构建 (W^X 方案完整)
+- B: 保持当前
+
+### Q8: 是否创建 TorvoxRuntime 控制器
+- A: 创建统一 runtime (4-8h，解决端到端断裂)
+- B: 逐步接线 (每次改动小)
