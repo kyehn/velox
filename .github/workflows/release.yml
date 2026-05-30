@@ -23,6 +23,10 @@ jobs:
       - name: Build cdylib (torvox-gui-android)
         run: cargo ndk -t arm64-v8a -t x86_64 --manifest-path torvox-gui-android/Cargo.toml -o android/app/src/main/jniLibs build --release
       - name: Build torvox-exec (PIE binary)
+        env:
+          ANDROID_NDK_ROOT: /usr/local/lib/android/sdk/ndk/29.0.14206865
+          CARGO_TARGET_AARCH64_LINUX_ANDROID_LINKER: /usr/local/lib/android/sdk/ndk/29.0.14206865/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android33-clang
+          CARGO_TARGET_X86_64_LINUX_ANDROID_LINKER: /usr/local/lib/android/sdk/ndk/29.0.14206865/toolchains/llvm/prebuilt/linux-x86_64/bin/x86_64-linux-android33-clang
         run: |
           cargo build -p torvox-exec --target aarch64-linux-android --release
           cargo build -p torvox-exec --target x86_64-linux-android --release
