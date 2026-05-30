@@ -47,6 +47,7 @@ fun SettingsScreen(
     onBack: () -> Unit,
 ) {
     val fontSize by viewModel.fontSize.collectAsState()
+    val fontFamily by viewModel.fontFamily.collectAsState()
     val themeName by viewModel.themeName.collectAsState()
     val selectedShell by viewModel.shell.collectAsState()
     val scrollbackLines by viewModel.scrollbackLines.collectAsState()
@@ -78,6 +79,10 @@ fun SettingsScreen(
                     value = fontSize,
                     onValueChange = { viewModel.setFontSize(it) },
                 )
+                FontFamilySelector(
+                    selectedFamily = fontFamily,
+                    onFamilySelected = { viewModel.setFontFamily(it) },
+                )
             }
 
             item {
@@ -106,6 +111,57 @@ fun SettingsScreen(
             item {
                 Spacer(modifier = Modifier.height(16.dp))
             }
+        }
+    }
+}
+
+@Composable
+private fun FontFamilySelector(
+    selectedFamily: String,
+    onFamilySelected: (String) -> Unit,
+) {
+    val fontFamilies =
+        listOf(
+            "JetBrains Mono Nerd Font",
+            "Fira Code",
+            "Source Code Pro",
+            "Cascadia Code",
+            "Hack",
+            "MesloLGS NF",
+            "Iosevka",
+            "DejaVu Sans Mono",
+            "Droid Sans Mono",
+            "monospace",
+        )
+
+    Spacer(modifier = Modifier.height(8.dp))
+    Text("Font Family", style = MaterialTheme.typography.bodyLarge)
+    Spacer(modifier = Modifier.height(4.dp))
+    fontFamilies.forEach { family ->
+        Row(
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(8.dp))
+                    .clickable { onFamilySelected(family) }
+                    .padding(vertical = 10.dp, horizontal = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Box(
+                modifier =
+                    Modifier
+                        .size(16.dp)
+                        .clip(RoundedCornerShape(50))
+                        .background(
+                            if (selectedFamily == family) {
+                                MaterialTheme.colorScheme.primary
+                            } else {
+                                MaterialTheme.colorScheme.outline
+                            },
+                        ),
+            )
+            Spacer(modifier = Modifier.width(12.dp))
+            Text(family, style = MaterialTheme.typography.bodyLarge)
         }
     }
 }

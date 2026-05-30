@@ -822,14 +822,10 @@ impl vte::Perform for TerminalState {
             b"52" => {
                 if params.len() >= 2 {
                     let selection = String::from_utf8_lossy(params[1]);
-                    if selection.contains('c') || selection.contains('p') {
-                        if params.len() >= 3 {
-                            let data = String::from_utf8_lossy(params[2]);
-                            if data == "?" {
-                                self.send_response(b"\x1b]52;c;\x07");
-                            } else if data == "+" {
-                                self.send_response(b"\x1b]52;c;\x07");
-                            }
+                    if (selection.contains('c') || selection.contains('p')) && params.len() >= 3 {
+                        let data = String::from_utf8_lossy(params[2]);
+                        if data == "?" || data == "+" {
+                            self.send_response(b"\x1b]52;c;\x07");
                         }
                     }
                 }

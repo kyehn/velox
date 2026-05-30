@@ -75,9 +75,19 @@ class TerminalViewModel
             settingsRepository.scrollbackLines
                 .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 50000)
 
+        val fontFamily: StateFlow<String> =
+            settingsRepository.fontFamily
+                .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "JetBrains Mono Nerd Font")
+
         fun setFontSize(size: Float) {
             viewModelScope.launch {
                 settingsRepository.setFontSize(size)
+            }
+        }
+
+        fun setFontFamily(family: String) {
+            viewModelScope.launch {
+                settingsRepository.setFontFamily(family)
             }
         }
 
