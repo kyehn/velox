@@ -56,6 +56,7 @@ fun TerminalScreen(
                 onKeySend = { data ->
                     viewModel.writeToPty(data.toByteArray())
                 },
+                keys = state.modifierKeys,
             )
         }
     }

@@ -1,7 +1,6 @@
 package io.torvox.ui
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -14,11 +13,8 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateMapOf
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -55,10 +51,10 @@ val defaultModifierKeys =
 fun ModifierBar(
     onKeySend: (String) -> Unit,
     modifier: Modifier = Modifier,
+    keys: List<ModifierKey> = defaultModifierKeys,
 ) {
     val scrollState = rememberScrollState()
     val activeToggles = remember { mutableStateMapOf<String, Boolean>() }
-    var pendingPrefix by remember { mutableStateOf("") }
 
     Row(
         modifier =
@@ -71,7 +67,7 @@ fun ModifierBar(
         horizontalArrangement = Arrangement.spacedBy(4.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        defaultModifierKeys.forEach { key ->
+        keys.forEach { key ->
             val isActive = activeToggles[key.label] == true
             val bgColor =
                 when {
@@ -108,12 +104,7 @@ fun ModifierBar(
                                 },
                                 onDoubleTap = {
                                     if (!key.isToggle) {
-                                        val prefix =
-                                            buildString {
-                                                if (activeToggles["Ctrl"] == true) append("\u0003")
-                                                if (activeToggles["Alt"] == true) append("\u001b")
-                                            }
-                                        onKeySend(prefix + key.vtSequence)
+                                        onKeySend(key.vtSequence)
                                         activeToggles["Ctrl"] = false
                                         activeToggles["Alt"] = false
                                     }
