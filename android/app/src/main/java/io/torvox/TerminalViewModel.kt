@@ -234,4 +234,29 @@ class TerminalViewModel
         fun resetModifierKeys() {
             _state.value = _state.value.copy(modifierKeys = defaultModifierKeys)
         }
+
+        fun createSession() {
+            val nextId = _state.value.sessionId + 1
+            _state.value =
+                _state.value.copy(
+                    sessionId = nextId,
+                    isRunning = true,
+                    title = "Torvox $nextId",
+                    selection = SelectionState(),
+                    pendingInput = null,
+                )
+        }
+
+        fun closeSession() {
+            _state.value =
+                _state.value.copy(
+                    isRunning = false,
+                    selection = SelectionState(),
+                    pendingInput = null,
+                )
+        }
+
+        fun setSessionTitle(title: String) {
+            _state.value = _state.value.copy(title = title)
+        }
     }
