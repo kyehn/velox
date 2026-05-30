@@ -153,7 +153,7 @@ torvox/
 | raw-window-handle | 0.6 | 仅 gpu.rs 内部用于 Android Surface 创建; 非公开 API 依赖 |
 | boltffi | 0.25 | 类型安全 Rust↔Kotlin 绑定; 所有 boltffi 类型在 gui-android/src/bridge.rs (单一导出位置) |
 | cargo-ndk | v4 | **重大变更**: v4 重写了 CLI, 与 v3 不兼容 |
-| fontdb | 0.34 | 字体发现 (系统字体 + 捆绑字体) |
+| fontdb | 0.23 | 字体发现 (系统字体 + 捆绑字体) |
 | thiserror | 2 | 错误类型派生 |
 | pollster | 0.4 | 阻塞运行时, 用于 wgpu 同步初始化 (gpu.rs 内部使用) |
 | proptest | 1.11 | 属性测试 |
