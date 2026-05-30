@@ -798,9 +798,54 @@ impl vte::Perform for TerminalState {
                     self.title = Some(title);
                 }
             }
-            b"4" => {}
-            b"10" | b"11" | b"12" => {}
-            b"52" => {}
+            b"4" => {
+                if params.len() >= 3 {
+                    let _color_index = params[1];
+                    let _color_spec = params[1];
+                }
+            }
+            b"8" => {
+                if params.len() >= 2 {
+                    let action = String::from_utf8_lossy(params[1]);
+                    if action == "a" || action.is_empty() {
+                        self.pending_responses.push(b"\x1b]8;;\x07".to_vec());
+                    }
+                    if params.len() >= 3 {
+                        let uri = String::from_utf8_lossy(params[2]);
+                        if !uri.is_empty() {
+                            self.pending_responses
+                                .push(format!("\x1b]8;;{}\x07", uri).into_bytes());
+                        }
+                    }
+                }
+            }
+            b"52" => {
+                if params.len() >= 2 {
+                    let selection = String::from_utf8_lossy(params[1]);
+                    if selection.contains('c') || selection.contains('p') {
+                        if params.len() >= 3 {
+                            let data = String::from_utf8_lossy(params[2]);
+                            if data == "?" {
+                                self.send_response(b"\x1b]52;c;\x07");
+                            } else if data == "+" {
+                                self.send_response(b"\x1b]52;c;\x07");
+                            }
+                        }
+                    }
+                }
+            }
+            b"133" => {
+                if params.len() >= 2 {
+                    match params[1] {
+                        b"A" => {}
+                        b"B" => {}
+                        b"C" => {}
+                        b"D" => {}
+                        b"E" => {}
+                        _ => {}
+                    }
+                }
+            }
             b"104" => {}
             b"110" => {}
             b"111" => {}
