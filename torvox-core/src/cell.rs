@@ -233,5 +233,4 @@ mod tests {
         m.mark(150);
         assert!(m.is_dirty(150));
     }
-
 }

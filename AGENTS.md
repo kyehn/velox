@@ -145,7 +145,6 @@
 | `AGENTS.md` (本文件) | ★★★★★ | AI 智能体首要上下文 | 每个会话开始 |
 | `docs/WORKFLOW.md` | ★★★★★ | SDD 工作流、状态管理、提交规范、质量门禁 | 每个会话开始 |
 | `docs/ROADMAP.md` | ★★★★★ | 当前阶段、里程碑步骤、退出标准 | 开始任何工作之前 |
-| `docs/AUDIT.md` | ★★★★★ | 当前状态、已知问题、待办事项 | 开始任何工作之前 |
 | `docs/ARCHITECTURE.md` | ★★★★★ | 完整架构、crate 结构、数据流、线程模型、技术版本锁定表 | 修改任何 crate 时 |
 | `docs/SPECIFICATION.md` | ★★★★★ | VT 标准覆盖、性能目标、合规测试 | 实现 VT 功能或优化时 |
 | `docs/ADR/004-pty-implementation.md` | ★★★★★ | 为什么 nix crate forkpty、不用 portable-pty、W^X 方案 | 修改 PTY 时 |
@@ -217,7 +216,7 @@
 | `torvox-terminal/terminal.rs` | **完整** | TerminalState + vte::Perform impl, 76 测试 (含 proptest), 就地 insert/delete chars |
 | `torvox-terminal/session.rs` | **完整** | Session orchestrator: PtyPair + TerminalState + parser + crossbeam channel + Condvar 事件通知, 5 个集成测试 |
 | `torvox-terminal/keyboard.rs` | **完整** | InputEngine: Kitty 协议 + VT 传统编码 + 鼠标 SGR, 43 个测试 |
-| `torvox-renderer` | **完整** | FontPipeline (fontdb+cosmic-text+swash+etagere, 7 测试), GpuContext (wgpu v29, 缓存 instance_buffer, cell.wgsl, cursor.wgsl, 3 测试), Android Surface 支持 (set_surface_from_native_window), 已移除空壳 atlas.rs/pipeline.rs, 无 torvox-terminal 依赖 |
+| `torvox-renderer` | **完整** | FontPipeline (fontdb+cosmic-text+swash+guillotiere, 7 测试), GpuContext (wgpu v29, 缓存 instance_buffer, cell.wgsl, cursor.wgsl, 3 测试), Android Surface 支持 (set_surface_from_native_window), 已移除空壳 atlas.rs/pipeline.rs, 无 torvox-terminal 依赖 |
 | `torvox-gui-android/bridge.rs` | **完整** | BridgeCell(+BridgeAttrs), Shell(Enum), TerminalConfig, TerminalEvent(8变体), TerminalError(detail), TorvoxBridge; From/Into 转换 core 类型 |
 | `torvox-gui-android/surface.rs` | **完整** | AndroidSurface: GPU 管线 + 字体 + 终端状态, set_native_window, render (使用 GridSnapshot) |
 | `torvox-exec` | **完整** | argv[0] 多调用二进制, 符号链接模式 + 直接调用模式 |
@@ -641,16 +640,10 @@ fontdb → cosmic-text 0.19 (整形) → swash 0.2.7 (光栅化, 内部用 skrif
 
 以下问题已知但尚未修复。不要在新代码中重复这些错误:
 
-| # | 问题 | 状态 | 影响 | 计划 |
-|---|------|------|------|------|
-| 1 | ~~`DirtyMask` 最多 64 行 (u64)~~ | **已修复** | 改为 `Vec<u64>` 分区方案 | 本次会话 |
-| 2 | `torvox-fuzz/fuzz_targets/` 不存在 | 待建 | 模糊测试无法运行 | P1.1 后 |
-| 3 | `torvox-integration-tests/tests/` 不存在 | 待建 | 集成测试无法运行 | P1.2 后 |
-| 4 | `torvox-bench/benches/` 不存在 | 待建 | 性能基准无法运行 | P1.4 后 |
-| 5 | ~~`torvox-renderer/shaders/` 不存在~~ | **已解决** | WGSL 着色器已存在 (cell.wgsl, cursor.wgsl) | 审计 2026-05-29 |
-| 6 | ~~TerminalForegroundService 未调用 setForegroundServiceType~~ | **已修复** | P1.6 已完成 | P1.6 |
-| 7 | ~~tokio/crossbeam 在 workspace 声明但未被任何 crate 使用~~ | **已解决** | crossbeam 已用于 session 通道 | 审计 2026-05-29 |
-| 8 | ~~glyphon 在 workspace 声明但未被任何 crate 使用~~ | **已解决** | glyphon 依赖已移除 | 审计 2026-05-29 |
+| # | 问题 | 状态 | 计划 |
+|---|------|------|------|
+| 1 | `torvox-bench/benches/` 不存在 | 待建 | 性能基准无法运行 |
+| 2 | CI 使用 `@main` 引用 | 待修 | 应固定到 SHA 或 tag |
 
 ---
 

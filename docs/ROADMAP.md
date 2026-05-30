@@ -161,7 +161,7 @@
 **详细步骤**:
 1. 实现 `Session` 编排器 (拥有 PtyPair + Grid + Parser)
 2. PTY 读取线程: 阻塞 `read()` → `flume bounded channel` → 解析任务
-3. VT 解析任务: 从通道读取字节 → `vte::Parser::advance()` → Grid 变更
+3. VT 解析任务: 从通道读取字节 → `vte::Perform` trait → Grid 变更
 4. 脏区域通知: Grid 变更 → `Condvar` → 渲染线程
 5. 输入写入: `InputEngine::process()` → VT 转义编码 → PTY `write()`
 6. 调整大小: `resize(rows, cols)` → `ioctl(TIOCSWINSZ)` + Grid 调整
