@@ -620,7 +620,15 @@ impl vte::Perform for TerminalState {
                 let mode = next_param();
                 self.clear_screen(mode);
             }
+            ('J', [b'?']) => {
+                let mode = next_param();
+                self.clear_screen(mode);
+            }
             ('K', []) => {
+                let mode = next_param();
+                self.clear_line(mode);
+            }
+            ('K', [b'?']) => {
                 let mode = next_param();
                 self.clear_line(mode);
             }
@@ -752,6 +760,16 @@ impl vte::Perform for TerminalState {
             }
             ('c', []) => {
                 self.send_response(b"\x1b[?1;2c");
+            }
+            ('s', [b'?']) => {
+                let mode = next_param();
+                let status = if self.modes.contains(&(mode as u16)) {
+                    1
+                } else {
+                    2
+                };
+                let response = alloc::format!("\x1b[?{};{}$y", mode, status);
+                self.send_response(response.as_bytes());
             }
             ('s', []) => self.save_cursor_position(),
             ('u', []) => self.restore_cursor_position(),
