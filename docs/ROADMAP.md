@@ -280,21 +280,21 @@
 
 ### P2.4 — 字体 + 主题
 
-1. 字体大小调整 (捏合缩放, 设置滑块)
-2. 字体选择器 (系统字体 + 捆绑字体 + 用户导入)
-3. 主题支持 (10+ 内置主题: Dracula, Solarized, Nord, Catppuccin, Tokyo Night, 等)
-4. 自定义主题 (TOML 配置文件)
-5. 24-bit TrueColor 支持 (vim 语法高亮)
+1. ✅ 字体大小调整 (DataStore 持久化, Settings slider) — bridge set_font_size + SettingsScreen
+2. ⬜ 字体选择器 (系统字体 + 捆绑字体 + 用户导入) — 需 fontdb 集成
+3. ✅ 主题支持 (10+ 内置主题: Dracula, Solarized, Nord, Catppuccin, Tokyo Night 等) — TerminalTheme.kt
+4. ⬜ 自定义主题 (TOML 配置文件) — 需 TOML 解析器
+5. ✅ 24-bit TrueColor 支持 (vim 语法高亮) — 已通过 VT parser SGR 38;2/48;2 验证
 
 ### P2.5 — 设置
 
-1. Jetpack Compose 设置屏幕
-2. Shell 选择 (/system/bin/sh, bash, zsh, fish)
-3. 字体/字号/行间距配置
-4. 配色方案选择
-5. 触摸行为配置 (点击=右键/中键/无)
-6. 会话管理 (创建/关闭/恢复)
-7. DataStore 持久化
+1. ✅ Jetpack Compose 设置屏幕 — SettingsScreen.kt
+2. ✅ Shell 选择 (/system/bin/sh, bash, zsh, fish) — ShellSelector
+3. ✅ 字体/字号配置 — FontSizeSlider + DataStore
+4. ✅ 配色方案选择 — ThemeSelector with preview
+5. ⬜ 触摸行为配置 (点击=右键/中键/无) — 需 TerminalSurface 集成
+6. ⬜ 会话管理 (创建/关闭/恢复) — 需 session lifecycle
+7. ✅ DataStore 持久化 — SettingsRepository
 
 ---
 
