@@ -1,7 +1,7 @@
 # Torvox 审计报告
 
 > 日期: 2026-05-30
-> 测试: 155 全部通过 | Clippy: 零警告 | 格式化: 通过
+> 测试: 166 全部通过 | Clippy: 零警告 | 格式化: 通过
 
 ## 一、当前完成状态
 
@@ -32,7 +32,7 @@ boltffi 0.25 使用 `#[data]`/`#[error]`/`#[boltffi::export]` 注解，不需要
 
 | 指标 | 值 |
 |------|-----|
-| 测试总数 | 155 (76 core + 7 gui + 4 integration + 10 renderer + 58 terminal) |
+| 测试总数 | 166 (76 core + 7 gui + 4 integration + 14 renderer + 65 terminal) |
 | unsafe块 | 有 (全部有SAFETY注释) |
 | unwrap(库代码) | 0 (全部改为expect或if-let) |
 | Clippy | 零警告 |

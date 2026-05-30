@@ -92,7 +92,7 @@
 1. 写代码 → `cargo clippy -- -D warnings` 零警告
 2. 写测试 → `cargo nextest -p <crate>` 通过
 3. 提交前 → `cargo nextest --workspace` 全量通过
-4. 完成阶段 → `./scripts/quality-gate.sh` 通过
+4. 完成阶段 → `nu scripts/quality-gate.nu` 通过
 
 ## 5. 不确定时停下
 
@@ -174,8 +174,8 @@
 | `torvox-terminal/src/pty.rs` | PtyPair (spawn, resize, Read/Write, Drop) | 唯一允许 fork unsafe 的位置 |
 | `torvox-gui-android/src/bridge.rs` | boltffi 导出类型 + TorvoxBridge | 唯一允许导出的位置 |
 | `torvox-gui-android/uniffi.toml` | boltffi 配置文件 | 已移除 (boltffi 不需要配置文件) |
-| `scripts/build-android-libs.sh` | cargo-ndk 交叉编译 + torvox-exec 构建 | 替代 rust-android-gradle |
-| `scripts/quality-gate.sh` | 8 步质量门 | 提交前必须通过 |
+| `scripts/build-android-libs.nu` | cargo-ndk 交叉编译 + torvox-exec 构建 | 替代 rust-android-gradle |
+| `scripts/quality-gate.nu` | 8 步质量门 | 提交前必须通过 |
 | `flake.nix` | 完整 Nix 开发环境 | 使用 flake-parts，需要 allowUnfree |
 
 ---
@@ -200,7 +200,7 @@
 
 | 里程碑 | 交付物 | 状态 |
 |--------|--------|------|
-| P1.1 | VT 解析器 (vte 0.15, Paul Williams 状态机) | ✅ 完成 |
+| P1.1 | VT 解析器 (libghostty-vt 0.1, SIMD优化) | ✅ 完成 |
 | P1.2 | PTY 会话集成 (crossbeam SPSC) | ✅ 完成 |
 | P1.3 | 字体管线 (fontdb → cosmic-text → swash/skrifa → etagere) | ✅ 完成 |
 | P1.4 | GPU 渲染管线 (实例化四边形, WGSL 着色器) | ✅ 完成 |
@@ -250,7 +250,7 @@
 │ ✗ 使用 portable-pty — 不支持 Android，用 nix 0.31 crate                  │
 │ ✗ 使用 bincode — 已废弃 (RUSTSEC-2025-0141)，用 postcard 1.1             │
 │ ✗ 使用 rust-android-gradle — AGP 9.0+ 移除 AppExtension，不兼容          │
-│   用 scripts/build-android-libs.sh (cargo-ndk v4) 代替                    │
+│   用 scripts/build-android-libs.nu (cargo-ndk v4) 代替                    │
 │ ✗ 在库 crate 中使用 anyhow — 库用 thiserror 2，仅二进制可用 eyre         │
 │ ✗ 在 boltffi Error 枚举中使用 `message` 字段名 — 与 Kotlin               │
 │   Throwable.message 冲突。改用 `detail`                                   │
@@ -305,7 +305,7 @@
 | 5 | boltffi Error `message` 字段与 Kotlin 冲突 | Kotlin `Throwable.message` 与 boltffi 生成的 `message` 字段冲突。改用 `detail` | P0.6 |
 | 6 | `libtorvox_core.so` 命名冲突 | lib 名与 `torvox-core` Rust crate 冲突。改为 `libtorvox_android.so` | C1 审计 |
 | 7 | `/proc/self/exe` 不保留符号链接名 | 解引用到真实二进制。用 `argv[0]` 的 `file_name()` 代替 | ADR 004 |
-| 8 | `rust-android-gradle` 与 AGP 9.0 不兼容 | AGP 9.0 移除了 `AppExtension`。用 `scripts/build-android-libs.sh` 代替 | P0.3 |
+| 8 | `rust-android-gradle` 与 AGP 9.0 不兼容 | AGP 9.0 移除了 `AppExtension`。用 `scripts/build-android-libs.nu` 代替 | P0.3 |
 | 9 | `std::env::set_var` 在 Rust 1.95 是 unsafe | 需要 `unsafe` 块包裹 | 构建 |
 | 10 | `nix::fcntl::fcntl` 在 nix 0.31 接受 `AsFd` 而非 `RawFd` | API 变更，注意类型转换 | P0.5 |
 | 11 | `OwnedFd::from_raw_fd` + `mem::forget` 模式 | 用于在借用 fd 上操作 termios，防止 drop 关闭 fd | P0.5 |
@@ -335,7 +335,7 @@ cargo clippy -- -D warnings                        # 零警告 (必须)
 cargo fmt --check                                  # 格式检查
 
 # ── Android 构建 ─────────────────────────────────────
-./scripts/build-android-libs.sh                    # 交叉编译 Rust → Android .so + exec
+./scripts/build-android-libs.nu                    # 交叉编译 Rust → Android .so + exec
 cd android && ./gradlew assembleDebug              # 构建 APK (需要先运行上方脚本)
 cd android && ./gradlew lint                       # Kotlin lint
 cd android && ./gradlew test                       # Kotlin 测试
@@ -349,7 +349,7 @@ boltffi pack android \
   --output-dir android/app/src/main/java/io/torvox/bridge/
 
 # ── 质量门 ───────────────────────────────────────────
-./scripts/quality-gate.sh                          # 8 步全量质量门
+nu scripts/quality-gate.nu                          # 8 步全量质量门
 
 # ── 安全检查 ─────────────────────────────────────────
 cargo geiger                                       # 检查 unsafe 使用
@@ -554,7 +554,7 @@ PTY write → kernel → read() → raw bytes → crossbeam SPSC
 
 ```
 fontdb → cosmic-text 0.19 (整形) → swash 0.2.7 (光栅化, 内部用 skrifa 做 scaling)
-  → etagere 0.3 (shelf packing 图集) → 实例化四边形 → 单次 draw call
+  → guillotiere 0.7 (shelf packing 图集) → 实例化四边形 → 单次 draw call
 ```
 
 - swash 0.2.x: scaling 完全由内部 skrifa 处理，**不需要单独依赖 skrifa crate**
@@ -620,7 +620,7 @@ fontdb → cosmic-text 0.19 (整形) → swash 0.2.7 (光栅化, 内部用 skrif
 
 6. [ ] `cd android && ./gradlew lint` 通过
 7. [ ] `cd android && ./gradlew test` 通过
-8. [ ] `./scripts/build-android-libs.sh` 成功
+8. [ ] `./scripts/build-android-libs.nu` 成功
 9. [ ] boltffi 绑定已重新生成 (如 bridge.rs 有变更)
 
 ## 文档同步
