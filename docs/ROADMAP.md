@@ -276,7 +276,7 @@
 2. ✅ 粘滞模式 (双击锁定修饰键) — ModifierBar.kt 双击重置
 3. ✅ 可配置布局 (用户自定义键) — ViewModel.setModifierKeys API
 4. ⬜ Nerd Font 字形用于键标签 — 需要打包 Nerd Font，暂用文本标签
-5. ⬜ 滑动手势 (左滑=Esc, 右滑=Tab)
+5. ✅ 滑动手势 (左滑=Esc, 右滑=Tab) — TerminalSurface.onFling
 
 ### P2.4 — 字体 + 主题
 
