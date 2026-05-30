@@ -486,6 +486,43 @@ impl GpuContext {
         }));
     }
 
+    pub fn warmup(&self) {
+        let mut encoder = self
+            .device
+            .create_command_encoder(&wgpu::CommandEncoderDescriptor {
+                label: Some("Warmup Encoder"),
+            });
+
+        if let Some(surface) = &self.surface {
+            let output = match surface.get_current_texture() {
+                wgpu::CurrentSurfaceTexture::Success(tex)
+                | wgpu::CurrentSurfaceTexture::Suboptimal(tex) => tex,
+                _ => return,
+            };
+            let view = output
+                .texture
+                .create_view(&wgpu::TextureViewDescriptor::default());
+            {
+                let _render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+                    label: Some("Warmup Pass"),
+                    color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+                        view: &view,
+                        resolve_target: None,
+                        ops: wgpu::Operations {
+                            load: wgpu::LoadOp::Clear(wgpu::Color::BLACK),
+                            store: wgpu::StoreOp::Store,
+                        },
+                        depth_slice: None,
+                    })],
+                    depth_stencil_attachment: None,
+                    ..Default::default()
+                });
+            }
+            self.queue.submit(std::iter::once(encoder.finish()));
+            output.present();
+        }
+    }
+
     pub fn render_frame(&mut self, instances: &[CellInstance]) -> Result<(), GpuError> {
         let surface = self
             .surface

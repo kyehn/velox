@@ -43,7 +43,7 @@ impl Session {
         let exited = Arc::new(AtomicBool::new(false));
         let output_notify = Arc::new((Mutex::new(false), Condvar::new()));
 
-        let (output_tx, output_rx) = bounded::<Vec<u8>>(64);
+        let (output_tx, output_rx) = bounded::<Vec<u8>>(128);
 
         // SAFETY: dup() is safe because pty.master_fd() returns a valid fd
         // owned by PtyPair. We duplicate it so the reader thread has its own
