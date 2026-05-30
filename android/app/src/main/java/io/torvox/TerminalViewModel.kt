@@ -38,6 +38,7 @@ data class TerminalState(
     val isRunning: Boolean = false,
     val title: String = "Torvox",
     val selection: SelectionState = SelectionState(),
+    val pendingInput: ByteArray? = null,
 )
 
 @HiltViewModel
@@ -145,5 +146,15 @@ class TerminalViewModel
                     "selection[block:${lo.row}:${lo.col}-${hi.row}:${hi.col}]"
                 }
             }
+        }
+
+        fun writeToPty(data: ByteArray) {
+            _state.value = _state.value.copy(pendingInput = data)
+        }
+
+        fun consumePendingInput(): ByteArray? {
+            val data = _state.value.pendingInput
+            _state.value = _state.value.copy(pendingInput = null)
+            return data
         }
     }

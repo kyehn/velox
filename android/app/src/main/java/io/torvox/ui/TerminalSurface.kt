@@ -121,6 +121,8 @@ class TerminalSurface
 
         fun isCurrentlyScrolling(): Boolean = isScrolling
 
+        fun consumePendingInput(): ByteArray? = viewModel?.consumePendingInput()
+
         override fun onTouchEvent(event: MotionEvent): Boolean {
             val handled = gestureDetector.onTouchEvent(event)
             if (event.actionMasked == MotionEvent.ACTION_MOVE && viewModel

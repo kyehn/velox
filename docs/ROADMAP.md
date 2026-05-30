@@ -272,11 +272,11 @@
 
 ### P2.3 — 修饰键栏
 
-1. 屏幕修饰键 (Ctrl/Alt/Esc/Tab/方向键)
-2. 粘滞模式 (双击锁定修饰键)
-3. 可配置布局 (用户自定义键)
-4. Nerd Font 字形用于键标签
-5. 滑动手势 (左滑=Esc, 右滑=Tab)
+1. ✅ 屏幕修饰键 (Ctrl/Alt/Esc/Tab/方向键) — ModifierBar.kt + boltffi write_to_pty
+2. ✅ 粘滞模式 (双击锁定修饰键) — ModifierBar.kt 双击重置
+3. ⬜ 可配置布局 (用户自定义键)
+4. ⬜ Nerd Font 字形用于键标签
+5. ⬜ 滑动手势 (左滑=Esc, 右滑=Tab)
 
 ### P2.4 — 字体 + 主题
 
