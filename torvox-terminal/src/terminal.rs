@@ -56,6 +56,7 @@ pub struct TerminalState {
     insert_mode: bool,
     alt_grid: Option<Grid>,
     title: Option<String>,
+    pending_responses: Vec<Vec<u8>>,
 }
 
 impl TerminalState {
@@ -84,6 +85,7 @@ impl TerminalState {
             insert_mode: false,
             alt_grid: None,
             title: None,
+            pending_responses: Vec::new(),
         })
     }
 
@@ -99,6 +101,14 @@ impl TerminalState {
         self.grid.resize(rows, cols);
         self.scroll_bottom = rows;
         self.clamp_cursor();
+    }
+
+    pub fn take_responses(&mut self) -> Vec<Vec<u8>> {
+        core::mem::take(&mut self.pending_responses)
+    }
+
+    fn send_response(&mut self, response: &[u8]) {
+        self.pending_responses.push(response.to_vec());
     }
 
     fn clamp_cursor(&mut self) {
@@ -458,6 +468,32 @@ impl TerminalState {
 
 impl vte::Perform for TerminalState {
     fn print(&mut self, c: char) {
+        let c = if self.charsets[self.active_charset] == Charset::SpecialGraphics {
+            match c {
+                'j' => '┘',
+                'k' => '┐',
+                'l' => '┌',
+                'm' => '└',
+                'n' => '┼',
+                'q' => '─',
+                't' => '├',
+                'u' => '┤',
+                'v' => '┴',
+                'w' => '┬',
+                'x' => '│',
+                'y' => '≠',
+                'z' => '≥',
+                '{' => '≤',
+                '|' => 'π',
+                '}' => '×',
+                '~' => '°',
+                '`' => '◆',
+                _ => c,
+            }
+        } else {
+            c
+        };
+
         let row = self.effective_row();
         let cols = self.grid.cols();
 
@@ -494,9 +530,15 @@ impl vte::Perform for TerminalState {
                 self.cursor.col = 0;
             }
             C0_LF | C0_VT | C0_FF => {
+                if self.modes.contains(&20) {
+                    self.cursor.col = 0;
+                }
                 self.advance_line();
             }
             C0_BEL => {}
+            0x05 => {
+                self.send_response(b"\x1b[?1;2c");
+            }
             C0_SO => {
                 self.active_charset = 1;
             }
@@ -601,6 +643,36 @@ impl vte::Perform for TerminalState {
                 let new_col = self.prev_tab_stop(self.cursor.col);
                 self.cursor.col = new_col;
             }
+            ('I', []) => {
+                let n = next_param().max(1);
+                let mut col = self.cursor.col;
+                for _ in 0..n {
+                    col = self.next_tab_stop(col);
+                }
+                self.cursor.col = col.min(self.grid.cols().saturating_sub(1));
+            }
+            ('b', []) => {
+                let n = next_param().max(1);
+                let row = self.effective_row();
+                if let Some(cell) = self.grid.cell(row, self.cursor.col) {
+                    let ch = cell.char;
+                    let fg = cell.fg;
+                    let bg = cell.bg;
+                    let attrs = cell.attrs;
+                    for i in 0..n {
+                        let col = self.cursor.col + i;
+                        if col >= self.grid.cols() {
+                            break;
+                        }
+                        if let Some(c) = self.grid.cell_mut(row, col) {
+                            c.char = ch;
+                            c.fg = fg;
+                            c.bg = bg;
+                            c.attrs = attrs;
+                        }
+                    }
+                }
+            }
             ('@', []) => {
                 let n = next_param().max(1);
                 self.insert_blank_chars(n);
@@ -653,8 +725,24 @@ impl vte::Perform for TerminalState {
                     }
                 }
             }
-            ('n', []) => {}
-            ('c', []) => {}
+            ('n', []) => {
+                let mode = next_param();
+                match mode {
+                    5 => {
+                        self.send_response(b"\x1b[0n");
+                    }
+                    6 => {
+                        let row = self.cursor.row + 1;
+                        let col = self.cursor.col + 1;
+                        let response = alloc::format!("\x1b[{};{}R", row, col);
+                        self.send_response(response.as_bytes());
+                    }
+                    _ => {}
+                }
+            }
+            ('c', []) => {
+                self.send_response(b"\x1b[?1;2c");
+            }
             ('s', []) => self.save_cursor_position(),
             ('u', []) => self.restore_cursor_position(),
             ('q', [b' ']) => {
