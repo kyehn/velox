@@ -57,6 +57,8 @@ pub struct TerminalState {
     alt_grid: Option<Grid>,
     title: Option<String>,
     pending_responses: Vec<Vec<u8>>,
+    pub keypad_application_mode: bool,
+    pub cursor_key_application_mode: bool,
 }
 
 impl TerminalState {
@@ -86,6 +88,8 @@ impl TerminalState {
             alt_grid: None,
             title: None,
             pending_responses: Vec::new(),
+            keypad_application_mode: false,
+            cursor_key_application_mode: false,
         })
     }
 
@@ -417,13 +421,16 @@ impl TerminalState {
 
     fn dec_set_mode(&mut self, mode: u32) {
         match mode {
-            1 => {}
+            1 => self.cursor_key_application_mode = true,
             3 => {}
+            4 => self.insert_mode = true,
             5 => {}
             6 => self.origin_mode = true,
             7 => self.wrap_around = true,
             12 => {}
+            20 => {} // LNM handled in execute()
             25 => self.cursor.visible = true,
+            66 => self.keypad_application_mode = true,
             1049 => {
                 let cols = self.grid.cols();
                 let rows = self.grid.rows();
@@ -444,13 +451,16 @@ impl TerminalState {
 
     fn dec_reset_mode(&mut self, mode: u32) {
         match mode {
-            1 => {}
+            1 => self.cursor_key_application_mode = false,
             3 => {}
+            4 => self.insert_mode = false,
             5 => {}
             6 => self.origin_mode = false,
             7 => self.wrap_around = false,
             12 => {}
+            20 => {} // LNM handled in execute()
             25 => self.cursor.visible = false,
+            66 => self.keypad_application_mode = false,
             1049 => {
                 if let Some(alt) = self.alt_grid.take() {
                     self.grid = alt;
