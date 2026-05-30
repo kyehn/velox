@@ -282,7 +282,10 @@ private data class FfiBuf(
     val len: Int,
 )
 
-private fun readFfiBuf(p: Pointer?): FfiBuf = FfiBuf(p!!.getLong(0), p.getLong(8).toInt())
+private fun readFfiBuf(p: Pointer?): FfiBuf {
+    if (p == null) return FfiBuf(0, 0)
+    return FfiBuf(p.getLong(0), p.getLong(8).toInt())
+}
 
 private fun readWireBytes(buf: FfiBuf): ByteArray {
     if (buf.ptr == 0L || buf.len == 0) return ByteArray(0)
@@ -301,8 +304,10 @@ class TorvoxBridge(
         decode: (WireReader) -> T,
     ): T {
         val lib = ensureLib()
-        val p = fn(lib)!!
-        val r = WireReader(readWireBytes(readFfiBuf(p)))
+        val p = fn(lib) ?: throw RuntimeException("Native call returned null")
+        val buf = readFfiBuf(p)
+        if (buf.ptr == 0L) throw RuntimeException("Empty response from native call")
+        val r = WireReader(readWireBytes(buf))
         val tag = r.readByte()
         return if (tag == 0.toByte()) decode(r) else throw RuntimeException(r.readString())
     }
@@ -332,12 +337,12 @@ class TorvoxBridge(
     }
 
     fun scrollbackLen(): UInt {
-        val p = ensureLib().boltffi_torvox_bridge_scrollback_len(handle)!!
+        val p = ensureLib().boltffi_torvox_bridge_scrollback_len(handle) ?: return 0u
         return WireReader(readWireBytes(readFfiBuf(p))).readU32()
     }
 
     fun scrollbackLine(index: UInt): String? {
-        val p = ensureLib().boltffi_torvox_bridge_scrollback_line(handle, index.toInt())!!
+        val p = ensureLib().boltffi_torvox_bridge_scrollback_line(handle, index.toInt()) ?: return null
         return WireReader(readWireBytes(readFfiBuf(p))).readOptional { it.readString() }
     }
 
@@ -348,12 +353,12 @@ class TorvoxBridge(
     fun getConfig(): TerminalConfig = callOk({ it.boltffi_torvox_bridge_get_config(handle) }) { TerminalConfig.wireDecode(it) }
 
     fun getThemeNames(): List<String> {
-        val p = ensureLib().boltffi_torvox_bridge_get_theme_names(handle)!!
+        val p = ensureLib().boltffi_torvox_bridge_get_theme_names(handle) ?: return emptyList()
         return WireReader(readWireBytes(readFfiBuf(p))).readList { it.readString() }
     }
 
     fun listFonts(): List<String> {
-        val p = ensureLib().boltffi_torvox_bridge_list_fonts(handle)!!
+        val p = ensureLib().boltffi_torvox_bridge_list_fonts(handle) ?: return emptyList()
         return WireReader(readWireBytes(readFfiBuf(p))).readList { it.readString() }
     }
 

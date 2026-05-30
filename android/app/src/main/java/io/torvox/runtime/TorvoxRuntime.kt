@@ -14,6 +14,7 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -46,16 +47,28 @@ class TorvoxRuntime
         ) {
             if (running) return
 
+            val shellPath = settingsRepository.shell.first()
+            val scrollbackLines = settingsRepository.scrollbackLines.first()
+            val fontSizeTenths = (settingsRepository.fontSize.first() * 10).toInt().toUInt()
+            val themeName = settingsRepository.themeName.first()
+
+            val shell =
+                if (shellPath == "/system/bin/sh" || shellPath.isEmpty()) {
+                    Shell.SystemDefault
+                } else {
+                    Shell.Custom(shellPath)
+                }
+
             val config =
                 TerminalConfig(
-                    shell = Shell.SystemDefault,
+                    shell = shell,
                     rows = 24u,
                     cols = 80u,
-                    scrollbackLines = 50000u,
-                    font_size_tenths = 140u,
+                    scrollbackLines = scrollbackLines.toUInt(),
+                    font_size_tenths = fontSizeTenths,
                     theme =
                         io.torvox.bridge.BridgeTheme(
-                            name = "Catppuccin Mocha",
+                            name = themeName,
                             bg = 0x1E1E2Eu.toInt(),
                             fg = 0xCDD6F4u.toInt(),
                             cursor = 0xF5E0DCu.toInt(),

@@ -89,19 +89,24 @@ torvox/
 │   │   └── main.rs         # 根据 argv[0] 执行对应命令
 │   └── Cargo.toml
 │
-├── torvox-fuzz/             # 模糊测试 (pending crate; targets 待建)
+├── torvox-fuzz/             # 模糊测试 (3 targets: vt_parser, osc_parse, grid_resize)
+│   └── fuzz/
+│       ├── fuzz_targets/
+│       │   ├── fuzz_vt_parser.rs
+│       │   ├── fuzz_osc_parse.rs
+│       │   └── fuzz_grid_resize.rs
+│       └── Cargo.toml
+│
+├── torvox-integration-tests/ # 跨边界集成测试 (4 tests)
 │   ├── src/
-│   │   └── lib.rs          # 存根
+│   │   └── lib.rs
 │   └── Cargo.toml
 │
-├── torvox-integration-tests/ # 跨边界集成测试 (pending crate)
+├── torvox-bench/            # Criterion 基准测试 (4 benchmarks)
+│   ├── benches/
+│   │   └── terminal_bench.rs
 │   ├── src/
-│   │   └── lib.rs          # 存根
-│   └── Cargo.toml
-│
-├── torvox-bench/            # 基准测试 (empty)
-│   ├── src/
-│   │   └── lib.rs          # 存根
+│   │   └── lib.rs
 │   └── Cargo.toml
 │
 ├── android/                # Kotlin Android 应用

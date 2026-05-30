@@ -55,7 +55,7 @@ impl Session {
 
         fn notify_output(notify: &Arc<(Mutex<bool>, Condvar)>) {
             let (lock, cvar) = &**notify;
-            let mut pending = lock.lock().unwrap();
+            let mut pending = lock.lock().unwrap_or_else(|e| e.into_inner());
             *pending = true;
             cvar.notify_one();
         }
@@ -144,9 +144,9 @@ impl Session {
 
     pub fn wait_for_output(&self) {
         let (lock, cvar) = &*self.output_notify;
-        let mut pending = lock.lock().unwrap();
+        let mut pending = lock.lock().unwrap_or_else(|e| e.into_inner());
         while !*pending {
-            pending = cvar.wait(pending).unwrap();
+            pending = cvar.wait(pending).unwrap_or_else(|e| e.into_inner());
         }
         *pending = false;
     }

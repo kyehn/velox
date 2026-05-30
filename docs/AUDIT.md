@@ -137,20 +137,13 @@
 ## 待决策问题 (2026-05-30 审计)
 
 ### Q1: fontdb 版本不一致
-Cargo.toml 写 0.23，ARCHITECTURE.md 写 0.34。
-- A: 保持 0.23，修正文档 (零风险)
-- B: 升级到 0.34 (需适配 API 变更)
-- C: 修正文档为 0.23 (零风险)
+**已解决**: Cargo.toml 和 ARCHITECTURE.md 都是 0.23，保持不变。
 
 ### Q2: flume 版本不一致
-Cargo.toml 写 0.11，ARCHITECTURE.md 写 0.12。
-- A: 升级到 0.12 (API 兼容，minor bump)
-- B: 保持 0.11，修正文档
+**已解决**: Cargo.toml 升级到 0.12，与 ARCHITECTURE.md 一致。
 
 ### Q3: boltffi vs UniFFI 绑定重新生成
-- A: 用 boltffi_cli 重新生成 (需 cargo-ndk 交叉编译)
-- B: 回退到 UniFFI (更成熟)
-- C: 手动 JNI 绑定
+**已解决**: 用 boltffi JNA 桥接替代 UniFFI (见 U8)。
 
 ### Q4: CI Actions 引用 @main
 - A: 固定到 v4 tag + Dependabot

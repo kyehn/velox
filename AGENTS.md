@@ -187,7 +187,7 @@
 | `torvox-core/src/grid.rs` | Grid, DirtyMask (Vec<u64> 分区位标志) | 任意行数 |
 | `torvox-terminal/src/pty.rs` | PtyPair (spawn, resize, Read/Write, Drop) | 唯一允许 fork unsafe 的位置 |
 | `torvox-gui-android/src/bridge.rs` | boltffi 导出类型 + TorvoxBridge | 唯一允许导出的位置 |
-| `torvox-gui-android/uniffi.toml` | boltffi 配置文件 | 已移除 (boltffi 不需要配置文件) |
+| `torvox-gui-android/src/bridge.rs` | boltffi 导出类型 + TorvoxBridge | 唯一允许导出的位置 |
 | `scripts/build-android-libs.nu` | cargo-ndk 交叉编译 + torvox-exec 构建 | 替代 rust-android-gradle |
 | `scripts/quality-gate.nu` | 8 步质量门 | 提交前必须通过 |
 | `flake.nix` | 完整 Nix 开发环境 | 使用 flake-parts，需要 allowUnfree |
@@ -247,7 +247,7 @@
 | `torvox-exec` | **完整** | argv[0] 多调用二进制, 符号链接模式 + 直接调用模式 |
 | `torvox-fuzz` | **功能** | 3 个模糊目标 (fuzz_vt_parser, fuzz_osc_parse, fuzz_grid_resize), cargo-fuzz 配置完整 |
 | `torvox-integration-tests` | **功能** | 4 个集成测试 (parse_then_verify_terminal, scrollback_preserved_on_scroll, sgr_color_persists_across_cells, session_spawn_and_write) |
-| `torvox-bench` | **空** | 仅有 src/lib.rs 存根 |
+| `torvox-bench` | **功能** | 4 个 criterion 基准测试 (plain_text, sgr, cursor, 1k_lines) |
 | Android Kotlin | **功能** | TorvoxApp, MainActivity, TerminalViewModel (+settings), TerminalScreen (+topbar), ModifierBar, SettingsScreen (+theme/shell/font), ForegroundService, ExecInstaller |
 
 ## 已删除/合并的组件
@@ -674,7 +674,7 @@ fontdb → cosmic-text 0.19 (整形) → swash 0.2.7 (光栅化, 内部用 skrif
 | 5 | Unicode 宽度实现不完整 | 待修 | 缺少 ZWJ、variation selector 等 |
 | 6 | boltffi `#[export]` 要求 `pub` 方法 | ✅ 已修复 | 所有 bridge 方法已改为 pub |
 | 7 | CI 模拟器测试需 Rust 交叉编译 | ✅ 已修复 | CI 已添加 cargo-ndk 步骤 |
-| 8 | `echo_cells()` 是空操作 | 待清理 | 死代码，考虑移除 |
+| 8 | ~~`echo_cells()` 是空操作~~ | ✅ 已移除 | 已在本次会话中删除 |
 
 ---
 

@@ -91,6 +91,7 @@ pub struct BridgeTheme {
     pub bg: u32,
     pub fg: u32,
     pub cursor: u32,
+    pub selection_bg: u32,
     pub ansi0: u32,
     pub ansi1: u32,
     pub ansi2: u32,
@@ -128,6 +129,7 @@ impl From<torvox_core::config::Theme> for BridgeTheme {
             bg: rgb_to_u32(t.bg),
             fg: rgb_to_u32(t.fg),
             cursor: rgb_to_u32(t.cursor),
+            selection_bg: rgb_to_u32(t.bg), // default selection bg = background
             ansi0: rgb_to_u32(t.ansi[0]),
             ansi1: rgb_to_u32(t.ansi[1]),
             ansi2: rgb_to_u32(t.ansi[2]),
