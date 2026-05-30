@@ -22,17 +22,10 @@ internal class WireWriter {
 
     fun writeU32(v: UInt) = writeI32(v.toInt())
 
-    fun writeBool(v: Boolean) = writeByte(if (v) 1 else 0)
-
     fun writeString(v: String) {
         val bytes = v.toByteArray(Charsets.UTF_8)
         writeI32(bytes.size)
         buf.addAll(bytes.toList())
-    }
-
-    fun writeBytes(v: ByteArray) {
-        writeI32(v.size)
-        buf.addAll(v.toList())
     }
 
     fun toByteArray(): ByteArray = buf.toByteArray()
@@ -52,17 +45,13 @@ class WireReader(
 
     fun readI32(): Int {
         val v =
-            (data[pos].toInt() and 0xFF) or
-                ((data[pos + 1].toInt() and 0xFF) shl 8) or
-                ((data[pos + 2].toInt() and 0xFF) shl 16) or
-                ((data[pos + 3].toInt() and 0xFF) shl 24)
+            (data[pos].toInt() and 0xFF) or ((data[pos + 1].toInt() and 0xFF) shl 8) or
+                ((data[pos + 2].toInt() and 0xFF) shl 16) or ((data[pos + 3].toInt() and 0xFF) shl 24)
         pos += 4
         return v
     }
 
     fun readU32(): UInt = readI32().toUInt()
-
-    fun readBool(): Boolean = readByte() != 0.toByte()
 
     fun readString(): String {
         val len = readI32()
@@ -70,26 +59,6 @@ class WireReader(
         val bytes = data.copyOfRange(pos, pos + len)
         pos += len
         return String(bytes, Charsets.UTF_8)
-    }
-
-    fun readBytes(): ByteArray {
-        val len = readI32()
-        if (len == 0) return ByteArray(0)
-        val bytes = data.copyOfRange(pos, pos + len)
-        pos += len
-        return bytes
-    }
-
-    fun <T> readResult(
-        okReader: (WireReader) -> T,
-        errReader: (WireReader) -> T,
-    ): Result<T> {
-        val tag = readByte()
-        return when (tag) {
-            0.toByte() -> Result.success(okReader(this))
-            1.toByte() -> Result.failure(RuntimeException(errReader(this) as? String ?: "error"))
-            else -> Result.failure(RuntimeException("Unknown result tag: $tag"))
-        }
     }
 
     fun <T> readOptional(reader: (WireReader) -> T): T? {
@@ -223,20 +192,18 @@ data class TerminalConfig(
     companion object {
         fun wireDecode(r: WireReader): TerminalConfig =
             TerminalConfig(
-                shell = decodeShell(r),
+                shell =
+                    when (r.readI32()) {
+                        0 -> Shell.SystemDefault
+                        1 -> Shell.Custom(r.readString())
+                        else -> Shell.SystemDefault
+                    },
                 rows = r.readU32(),
                 cols = r.readU32(),
                 scrollbackLines = r.readU32(),
                 font_size_tenths = r.readU32(),
                 theme = BridgeTheme.wireDecode(r),
             )
-
-        private fun decodeShell(r: WireReader): Shell =
-            when (r.readI32()) {
-                0 -> Shell.SystemDefault
-                1 -> Shell.Custom(r.readString())
-                else -> Shell.SystemDefault
-            }
     }
 }
 
@@ -300,13 +267,13 @@ private interface TorvoxNative : Library {
     fun boltffi_last_error_message(): ByteArray?
 }
 
-private lateinit var nativeLib: TorvoxNative
+private var nativeLib: TorvoxNative? = null
+private val libLock = Any()
 
-private fun ensureLib() {
-    if (!::nativeLib.isInitialized) {
-        nativeLib = Native.load("torvox_android", TorvoxNative::class.java)
+private fun ensureLib(): TorvoxNative =
+    nativeLib ?: synchronized(libLock) {
+        nativeLib ?: Native.load("torvox_android", TorvoxNative::class.java).also { nativeLib = it }
     }
-}
 
 // ── FfiBuf reader ─────────────────────────────────────────────────────
 
@@ -315,11 +282,7 @@ private data class FfiBuf(
     val len: Int,
 )
 
-private fun readFfiBuf(p: Pointer?): FfiBuf {
-    val ptrVal = p!!.getLong(0)
-    val lenVal = p.getLong(8)
-    return FfiBuf(ptrVal, lenVal.toInt())
-}
+private fun readFfiBuf(p: Pointer?): FfiBuf = FfiBuf(p!!.getLong(0), p.getLong(8).toInt())
 
 private fun readWireBytes(buf: FfiBuf): ByteArray {
     if (buf.ptr == 0L || buf.len == 0) return ByteArray(0)
@@ -333,104 +296,71 @@ class TorvoxBridge(
 ) : AutoCloseable {
     private var closed = false
 
-    fun ping(): String {
-        val p = nativeLib.boltffi_torvox_bridge_ping(handle) ?: return ""
-        val bytes = readWireBytes(readFfiBuf(p))
-        val r = WireReader(bytes)
+    private fun <T> callOk(
+        fn: (TorvoxNative) -> Pointer?,
+        decode: (WireReader) -> T,
+    ): T {
+        val lib = ensureLib()
+        val p = fn(lib)!!
+        val r = WireReader(readWireBytes(readFfiBuf(p)))
         val tag = r.readByte()
-        return if (tag == 0.toByte()) r.readString() else throw RuntimeException(r.readString())
+        return if (tag == 0.toByte()) decode(r) else throw RuntimeException(r.readString())
     }
+
+    private fun callUnit(fn: (TorvoxNative) -> Pointer?) {
+        callOk(fn) { }
+    }
+
+    fun ping(): String = callOk({ it.boltffi_torvox_bridge_ping(handle) }) { it.readString() }
 
     fun spawnTerminal(
         rows: UInt,
         cols: UInt,
-    ): Int {
-        val p = nativeLib.boltffi_torvox_bridge_spawn_terminal(handle, rows.toInt(), cols.toInt())!!
-        val bytes = readWireBytes(readFfiBuf(p))
-        val r = WireReader(bytes)
-        val tag = r.readByte()
-        return if (tag == 0.toByte()) r.readI32() else throw RuntimeException(r.readString())
-    }
+    ): Int = callOk({ it.boltffi_torvox_bridge_spawn_terminal(handle, rows.toInt(), cols.toInt()) }) { it.readI32() }
 
-    fun setNativeWindow(windowPtr: Long) {
-        val p = nativeLib.boltffi_torvox_bridge_set_native_window(handle, windowPtr)!!
-        val bytes = readWireBytes(readFfiBuf(p))
-        val r = WireReader(bytes)
-        val tag = r.readByte()
-        if (tag != 0.toByte()) throw RuntimeException(r.readString())
-    }
+    fun setNativeWindow(windowPtr: Long) = callUnit { it.boltffi_torvox_bridge_set_native_window(handle, windowPtr) }
 
-    fun render() {
-        val p = nativeLib.boltffi_torvox_bridge_render(handle)!!
-        val bytes = readWireBytes(readFfiBuf(p))
-        val r = WireReader(bytes)
-        val tag = r.readByte()
-        if (tag != 0.toByte()) throw RuntimeException(r.readString())
-    }
+    fun render() = callUnit { it.boltffi_torvox_bridge_render(handle) }
 
     fun resize(
         rows: UInt,
         cols: UInt,
-    ) {
-        val p = nativeLib.boltffi_torvox_bridge_resize(handle, rows.toInt(), cols.toInt())!!
-        val bytes = readWireBytes(readFfiBuf(p))
-        val r = WireReader(bytes)
-        val tag = r.readByte()
-        if (tag != 0.toByte()) throw RuntimeException(r.readString())
-    }
+    ) = callUnit { it.boltffi_torvox_bridge_resize(handle, rows.toInt(), cols.toInt()) }
 
     fun releaseSurface() {
-        nativeLib.boltffi_torvox_bridge_release_surface(handle)
+        ensureLib().boltffi_torvox_bridge_release_surface(handle)
     }
 
     fun scrollbackLen(): UInt {
-        val p = nativeLib.boltffi_torvox_bridge_scrollback_len(handle)!!
+        val p = ensureLib().boltffi_torvox_bridge_scrollback_len(handle)!!
         return WireReader(readWireBytes(readFfiBuf(p))).readU32()
     }
 
     fun scrollbackLine(index: UInt): String? {
-        val p = nativeLib.boltffi_torvox_bridge_scrollback_line(handle, index.toInt())!!
+        val p = ensureLib().boltffi_torvox_bridge_scrollback_line(handle, index.toInt())!!
         return WireReader(readWireBytes(readFfiBuf(p))).readOptional { it.readString() }
     }
 
-    fun writeToPty(data: ByteArray) {
-        val p = nativeLib.boltffi_torvox_bridge_write_to_pty(handle, data, data.size)!!
-        val bytes = readWireBytes(readFfiBuf(p))
-        val r = WireReader(bytes)
-        val tag = r.readByte()
-        if (tag != 0.toByte()) throw RuntimeException(r.readString())
-    }
+    fun writeToPty(data: ByteArray) = callUnit { it.boltffi_torvox_bridge_write_to_pty(handle, data, data.size) }
 
-    fun setFontSize(sizeTenths: UInt) {
-        val p = nativeLib.boltffi_torvox_bridge_set_font_size(handle, sizeTenths.toInt())!!
-        val bytes = readWireBytes(readFfiBuf(p))
-        val r = WireReader(bytes)
-        val tag = r.readByte()
-        if (tag != 0.toByte()) throw RuntimeException(r.readString())
-    }
+    fun setFontSize(sizeTenths: UInt) = callUnit { it.boltffi_torvox_bridge_set_font_size(handle, sizeTenths.toInt()) }
 
-    fun getConfig(): TerminalConfig {
-        val p = nativeLib.boltffi_torvox_bridge_get_config(handle)!!
-        val bytes = readWireBytes(readFfiBuf(p))
-        val r = WireReader(bytes)
-        val tag = r.readByte()
-        return if (tag == 0.toByte()) TerminalConfig.wireDecode(r) else throw RuntimeException(r.readString())
-    }
+    fun getConfig(): TerminalConfig = callOk({ it.boltffi_torvox_bridge_get_config(handle) }) { TerminalConfig.wireDecode(it) }
 
     fun getThemeNames(): List<String> {
-        val p = nativeLib.boltffi_torvox_bridge_get_theme_names(handle)!!
+        val p = ensureLib().boltffi_torvox_bridge_get_theme_names(handle)!!
         return WireReader(readWireBytes(readFfiBuf(p))).readList { it.readString() }
     }
 
     fun listFonts(): List<String> {
-        val p = nativeLib.boltffi_torvox_bridge_list_fonts(handle)!!
+        val p = ensureLib().boltffi_torvox_bridge_list_fonts(handle)!!
         return WireReader(readWireBytes(readFfiBuf(p))).readList { it.readString() }
     }
 
     override fun close() {
         if (!closed) {
             closed = true
-            nativeLib.boltffi_torvox_bridge_free(handle)
+            nativeLib?.boltffi_torvox_bridge_free(handle)
         }
     }
 
@@ -438,11 +368,11 @@ class TorvoxBridge(
 }
 
 fun createBridge(config: TerminalConfig): TorvoxBridge {
-    ensureLib()
+    val lib = ensureLib()
     val wireBytes = config.wireEncode()
-    val handle = nativeLib.boltffi_torvox_bridge_new(wireBytes, wireBytes.size)
+    val handle = lib.boltffi_torvox_bridge_new(wireBytes, wireBytes.size)
     if (handle == 0L) {
-        val errMsg = nativeLib.boltffi_last_error_message()?.toString(Charsets.UTF_8) ?: "unknown"
+        val errMsg = lib.boltffi_last_error_message()?.toString(Charsets.UTF_8) ?: "unknown"
         throw RuntimeException("Failed to create TorvoxBridge: $errMsg")
     }
     return TorvoxBridge(handle)
