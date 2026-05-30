@@ -339,6 +339,8 @@
 | 15 | `#[error]` 枚举在 boltffi 中仅适用于枚举 | 不适用于结构体 | P0.6 |
 | 16 | `DirtyMask(Vec<u64>)` 不再是 `Copy` | 含 Vec 的类型不能 Copy。DirtyMask 失去 Copy，需 Clone。Grid 的 Clone 仍可用 | P0.2→本次修复 |
 | 17 | bridge.rs `shell: String` 无法表达 "系统默认" | 改为 `Shell` 枚举 (SystemDefault/Custom)，与 core 的 Shell 对齐，避免空字符串 hack | 本次修复 |
+| 18 | boltffi `#[export]` 在 impl 块上要求 `pub` 方法 | 方法必须是 `pub` 才能生成 C 导出函数。私有方法不会产生 `boltffi_torvox_bridge_*` 符号 | 本次修复 |
+| 19 | UniFFI 与 boltffi 绑定不兼容 | UniFFI 生成 `uniffi_*` 函数名，boltffi 生成 `boltffi_*` 函数名。切换 FFI 框架后 Kotlin 绑定必须重写 | 本次修复 |
 
 ---
 
@@ -665,8 +667,14 @@ fontdb → cosmic-text 0.19 (整形) → swash 0.2.7 (光栅化, 内部用 skrif
 
 | # | 问题 | 状态 | 计划 |
 |---|------|------|------|
-| 1 | `torvox-bench/benches/` 不存在 | 待建 | 性能基准无法运行 |
-| 2 | CI 使用 `@main` 引用 | 待修 | 应固定到 SHA 或 tag |
+| 1 | `torvox-bench` 已有基准骨架 | ✅ 已修复 | criterion benchmarks 已添加 |
+| 2 | CI `@main` 引用 | ✅ 已修复 | 所有 actions 固定到 v4/v3/v2 |
+| 3 | `extractSelectedText()` 返回占位符 | 待修 | 需要从 grid 读取实际内容 |
+| 4 | Grid scrollback 使用 `Vec::remove(0)` | 待优化 | 性能问题，需 ring buffer |
+| 5 | Unicode 宽度实现不完整 | 待修 | 缺少 ZWJ、variation selector 等 |
+| 6 | boltffi `#[export]` 要求 `pub` 方法 | ✅ 已修复 | 所有 bridge 方法已改为 pub |
+| 7 | CI 模拟器测试需 Rust 交叉编译 | ✅ 已修复 | CI 已添加 cargo-ndk 步骤 |
+| 8 | `echo_cells()` 是空操作 | 待清理 | 死代码，考虑移除 |
 
 ---
 
