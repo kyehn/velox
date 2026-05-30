@@ -156,7 +156,7 @@
 | 文件 | 重要性 | 用途 | 何时阅读 |
 |------|--------|------|----------|
 | `docs/ADR/001-language-choice.md` | ★★★☆☆ | 为什么 Rust+Kotlin 混合 | 质疑语言选择时 |
-| `docs/ADR/002-architecture-pattern.md` | ★★★☆☆ | 为什么库优先分层、事件驱动、crossbeam 而非 tokio | 修改架构时 |
+| `docs/ADR/002-architecture-pattern.md` | ★★★☆☆ | 为什么库优先分层、事件驱动、flume 而非 tokio | 修改架构时 |
 | `docs/ADR/003-rendering-pipeline.md` | ★★★☆☆ | 为什么 wgpu v29 + cosmic-text + swash/skrifa + 实例化四边形 | 修改渲染时 |
 | `docs/ADR/005-ai-workflow-and-tooling.md` | ★★★☆☆ | AI 工作流、SDD 方法论 | 规划 AI 协作流程时 |
 | `docs/DEVELOPMENT.md` | ★★★☆☆ | 构建步骤、命令、CI/CD、开发工作流 | 构建或调试问题时 |
@@ -223,15 +223,15 @@
 | `torvox-core` (9 模块) | **完整** | Cell, Attrs (10 SGR), Color, DirtyMask (Vec<u64>), Grid (含 scrollback + GridSnapshot trait), Line, Config, Cursor, Selection, Unicode, Event, Ansi |
 | `torvox-terminal/pty.rs` | **完整** | PtyPair: spawn, resize, read/write, Drop (增量终止), 非阻塞, 4 个 Linux 测试 |
 | `torvox-terminal/parser.rs` | **完整** | VtParser 包装 vte::Parser, advance 方法 |
-| `torvox-terminal/terminal.rs` | **完整** | TerminalState + vte::Perform impl, 76 测试 (含 proptest), 就地 insert/delete chars |
-| `torvox-terminal/session.rs` | **完整** | Session orchestrator: PtyPair + TerminalState + parser + crossbeam channel + Condvar 事件通知, 5 个集成测试 |
+| `torvox-terminal/terminal.rs` | **完整** | TerminalState + vte::Perform impl, 132 测试 (含 proptest), 就地 insert/delete chars |
+| `torvox-terminal/session.rs` | **完整** | Session orchestrator: PtyPair + TerminalState + parser + flume channel + Condvar 事件通知, 4 个集成测试 |
 | `torvox-terminal/keyboard.rs` | **完整** | InputEngine: Kitty 协议 + VT 传统编码 + 鼠标 SGR, 43 个测试 |
-| `torvox-renderer` | **完整** | FontPipeline (fontdb+cosmic-text+swash+guillotiere, 7 测试), GpuContext (wgpu v29, 缓存 instance_buffer, cell.wgsl, cursor.wgsl, 3 测试), Android Surface 支持 (set_surface_from_native_window), 已移除空壳 atlas.rs/pipeline.rs, 无 torvox-terminal 依赖 |
-| `torvox-gui-android/bridge.rs` | **完整** | BridgeCell(+BridgeAttrs), Shell(Enum), TerminalConfig, TerminalEvent(8变体), TerminalError(detail), TorvoxBridge; From/Into 转换 core 类型 |
+| `torvox-renderer` | **完整** | FontPipeline (fontdb+cosmic-text+swash+guillotiere, LRU eviction, 7 测试), GpuContext (wgpu v29, cell.wgsl, 7 测试), Android Surface 支持 |
+| `torvox-gui-android/bridge.rs` | **完整** | BridgeCell(+BridgeAttrs), BridgeTheme, Shell(Enum), TerminalConfig, TerminalEvent(8变体), TerminalError(detail), TorvoxBridge; From/Into 转换 core 类型 |
 | `torvox-gui-android/surface.rs` | **完整** | AndroidSurface: GPU 管线 + 字体 + 终端状态, set_native_window, render (使用 GridSnapshot) |
 | `torvox-exec` | **完整** | argv[0] 多调用二进制, 符号链接模式 + 直接调用模式 |
-| `torvox-fuzz` | **空** | 仅有 src/lib.rs 存根 |
-| `torvox-integration-tests` | **空** | 仅有 src/lib.rs 存根 |
+| `torvox-fuzz` | **功能** | 3 个模糊目标 (fuzz_vt_parser, fuzz_osc_parse, fuzz_grid_resize), cargo-fuzz 配置完整 |
+| `torvox-integration-tests` | **功能** | 4 个集成测试 (parse_then_verify_terminal, scrollback_preserved_on_scroll, sgr_color_persists_across_cells, session_spawn_and_write) |
 | `torvox-bench` | **空** | 仅有 src/lib.rs 存根 |
 | Android Kotlin | **功能** | TorvoxApp, MainActivity, TerminalViewModel (+settings), TerminalScreen (+topbar), ModifierBar, SettingsScreen (+theme/shell/font), ForegroundService, ExecInstaller |
 
@@ -383,7 +383,7 @@ cargo build -p torvox-core --target thumbv6m-none-eabi --no-default-features --f
 | cargo-audit | 0.22 | 漏洞扫描 |
 | cargo-ndk | latest | Android 交叉编译 |
 | rust-analyzer | latest | IDE 支持 |
-| JDK (Temurin) | 25 | Android 构建 |
+| JDK (Temurin) | 17 | Android 构建 |
 | Kotlin | nixpkgs latest | |
 | Gradle | 9 | |
 | ktfmt | nixpkgs latest | Kotlin 格式化 |
@@ -414,12 +414,10 @@ nix develop --command cargo nextest  # 直接运行
 | nix | 0.31 | PTY (openpty/fork/ioctl) |
 | cosmic-text | 0.19 | 文本整形 |
 | swash | 0.2.7 | 字体光栅化 (内部用 skrifa 做 scaling) |
-| etagere | 0.3 | 字形图集打包 |
+| guillotiere | 0.7 | 货架打包图集 |
 | boltffi | 0.25 | Kotlin 绑定生成 |
-| postcard | 1.1 | 已移除 (原用于测试序列化) |
+| flume | 0.12 | 无锁 SPSC 通道 (PTY→解析器) |
 | thiserror | 2 | 错误类型 (torvox-core 中 optional) |
-| tokio | 1.43 | 仅异步运行时 (热路径用 crossbeam) |
-| crossbeam | 0.8 | 无锁 SPSC 队列 (PTY→解析器) |
 | proptest | 1.11 | 属性测试 |
 | AGP | 9.0.1 | |
 | Kotlin | 2.3.21 | compose 插件 |
@@ -427,7 +425,7 @@ nix develop --command cargo nextest  # 直接运行
 | Hilt | 2.59.2 | 需 AGP 9.0+ |
 | KSP | 2.3.9 | 替代 kapt |
 | Gradle | 9 | |
-| JDK | 25 (Temurin) | |
+| JDK | 17 (Temurin) | |
 | NDK | 29.0.14206865 (r29) | |
 | minSdk / targetSdk | 33 / 36 | Android 13+ / 16 |
 
@@ -522,7 +520,7 @@ torvox-core (no_std, 零依赖)
       ↑
 torvox-terminal (nix, vte, crossbeam)
       ↑
-torvox-renderer (wgpu, cosmic-text, swash, etagere)
+torvox-renderer (wgpu, cosmic-text, swash, guillotiere)
       ↑
 torvox-gui-android (boltffi, 依赖上述所有)
 ```
@@ -557,7 +555,7 @@ PTY write → kernel → read() → raw bytes → crossbeam SPSC
 - **torvox-renderer 是单线程** (wgpu 设备在自己线程上)。
 - **FFI 边界传递结构化事件**，不是原始字节 (boltffi #[data]/#[error])。
 - **DirtyMask** `Vec<u64>` 分区，每 u64 覆盖 64 行，支持任意行数。不再有行数限制。
-- **热路径用 crossbeam**，不用 tokio。crossbeam 零分配、无锁、有界反压。
+- **热路径用 flume**，不用 tokio。flume 零分配、无锁、有界反压。
 
 ## 渲染管线
 

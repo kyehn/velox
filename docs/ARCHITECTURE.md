@@ -8,7 +8,7 @@ Torvox 是分层架构的终端模拟器，Rust 核心引擎 + Kotlin/Compose An
 ┌──────────────────────────────────────────────────────────────────────┐
 │ torvox-android (Kotlin)                                              │
 │ ┌─────────────────┐ ┌────────────────┐ ┌──────────────────────┐     │
-│ │ TerminalActivity │ │ TerminalView   │ │ SettingsActivity     │     │
+│ │ MainActivity     │ │ TerminalSurface│ │ SettingsScreen       │     │
 │ │ (Lifecycle)      │ │ (SurfaceView  │ │ (DataStore, Theme)   │     │
 │ │ ForegroundService│ │  Host)        │ │ Session Management   │     │
 │ └────────┬────────┘ └───────┬────────┘ └──────────┬───────────┘     │
@@ -72,8 +72,7 @@ torvox/
 │   │   ├── font.rs         # 字体管线 (cosmic-text 0.19 + swash 0.2.7 + guillotière)
 │   │   └── gpu.rs          # wgpu v29 GPU 管线 (Instance/Device/Queue/Surface)
 │   ├── shaders/
-│   │   ├── cell.wgsl       # 单元格着色器 (实例化四边形)
-│   │   └── cursor.wgsl     # 光标着色器 (纯色矩形)
+│   │   └── cell.wgsl       # 单元格着色器 (实例化四边形)
 │   ├── examples/
 │   │   └── basic_render.rs # 桌面渲染示例 (winit + wgpu)
 │   └── Cargo.toml
@@ -81,7 +80,7 @@ torvox/
 ├── torvox-gui-android/      # Android GUI 桥接
 │   ├── src/
 │   │   ├── lib.rs          # crate 根
-│ │ ├── bridge.rs # boltffi 导出: TorvoxBridge, BridgeCell(+BridgeAttrs), Shell(Enum), TerminalConfig, TerminalEvent(8变体), TerminalError
+│ │ ├── bridge.rs # boltffi 导出: TorvoxBridge, BridgeCell(+BridgeAttrs), BridgeTheme, Shell(Enum), TerminalConfig, TerminalEvent(8变体), TerminalError
 │   │   └── surface.rs      # wgpu → Android Surface 共享 (P1.5)
 │   └── Cargo.toml
 │
@@ -114,13 +113,18 @@ torvox/
 │   │   │   ├── ui/
 │   │   │   │   ├── TerminalScreen.kt      # 主 Compose 屏幕
 │   │   │   │   ├── TerminalSurface.kt     # SurfaceView 宿主
-│   │   │   │   ├── ExtraKeysBar.kt        # 屏幕修饰键
+│   │   │   │   ├── ModifierBar.kt         # 屏幕修饰键
 │   │   │   │   ├── SettingsScreen.kt      # 配置 UI
 │   │   │   │   └── theme/
+│   │   │   │       └── TerminalTheme.kt   # 内置主题定义
+│   │   │   ├── settings/
+│   │   │   │   └── SettingsRepository.kt  # DataStore 持久化
+│   │   │   ├── exec/
+│   │   │   │   └── ExecInstaller.kt       # 多调用二进制安装
 │   │   │   ├── service/
 │   │   │   │   └── TerminalForegroundService.kt  # FOREGROUND_SERVICE_SPECIAL_USE
 │   │   │   └── bridge/
-│   │   │       └── TorvoxBridge.kt         # boltffi 生成绑定
+│   │   │       └── torvox_android.kt      # boltffi 生成绑定
 │   │   └── build.gradle.kts
 │   ├── gradle/
 │   ├── settings.gradle.kts
@@ -145,11 +149,11 @@ torvox/
 | serde | 1 | 序列化框架 (可选, via features) |
 | bytemuck | 1 | 安全字节 reinterpret (GPU instance 数据) |
 | bitflags | 2 | 位标志类型 |
-| flume | 0.11 | 无锁 SPSC 通道 (PTY→解析器) |
+| flume | 0.12 | 无锁 SPSC 通道 (PTY→解析器) |
 | raw-window-handle | 0.6 | 仅 gpu.rs 内部用于 Android Surface 创建; 非公开 API 依赖 |
 | boltffi | 0.25 | 类型安全 Rust↔Kotlin 绑定; 所有 boltffi 类型在 gui-android/src/bridge.rs (单一导出位置) |
 | cargo-ndk | v4 | **重大变更**: v4 重写了 CLI, 与 v3 不兼容 |
-| postcard | 1.1 | 测试序列化 (dev-dependency) |
+| fontdb | 0.34 | 字体发现 (系统字体 + 捆绑字体) |
 | thiserror | 2 | 错误类型派生 |
 | pollster | 0.4 | 阻塞运行时, 用于 wgpu 同步初始化 (gpu.rs 内部使用) |
 | proptest | 1.11 | 属性测试 |
