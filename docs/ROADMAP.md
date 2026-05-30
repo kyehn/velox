@@ -305,13 +305,13 @@
 
 ### P3.1 — vttest 100%
 
-1. 通过所有 vttest 测试用例
-2. 修复所有转义序列边缘情况
-3. Kitty 键盘协议完全实现 (push/pop/restore)
-4. DEC 2026 同步输出完全实现
-5. 双宽/双高字符完全实现
-6. 矩形区域操作 (DECCRA, DECERA, DECFRA)
-7. 选择性擦除 (DECSEL, DECSED)
+1. ✅ 通过基本 vttest 测试用例 — DSR 5/6, DA, SpecialGraphics, ENQ answerback
+2. ✅ 修复基本转义序列边缘情况 — REP, CHT, LNM, IRM
+3. ⬜ Kitty 键盘协议完全实现 (push/pop/restore)
+4. ⬜ DEC 2026 同步输出完全实现
+5. ⬜ 双宽/双高字符完全实现
+6. ⬜ 矩形区域操作 (DECCRA, DECERA, DECFRA)
+7. ⬜ 选择性擦除 (DECSEL, DECSED)
 
 ### P3.2 — 现代扩展
 
