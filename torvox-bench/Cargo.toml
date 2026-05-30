@@ -1,9 +1,9 @@
 [package]
 name = "torvox-bench"
-version = "0.1.0"
-edition = "2024"
+version.workspace = true
+edition.workspace = true
 description = "Criterion benchmarks for Torvox terminal operations"
-license = "UNLICENSED"
+license.workspace = true
 
 [dependencies]
 torvox-core = { workspace = true }
