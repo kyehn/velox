@@ -12,7 +12,7 @@
 |----|------|
 | 核心引擎 | Rust (stable, Edition 2024) |
 | GPU 渲染 | wgpu 29 (Vulkan) |
-| FFI | UniFFI |
+| FFI | boltffi 0.25 (Rust side) / UniFFI 生成的 Kotlin 绑定待重新生成 |
 | Android UI | Kotlin + Compose |
 | 最低 SDK | Android 13 (API 33, Vulkan 1.3) |
 
