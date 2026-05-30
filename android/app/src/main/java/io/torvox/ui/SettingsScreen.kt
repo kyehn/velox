@@ -51,6 +51,7 @@ fun SettingsScreen(
     val themeName by viewModel.themeName.collectAsState()
     val selectedShell by viewModel.shell.collectAsState()
     val scrollbackLines by viewModel.scrollbackLines.collectAsState()
+    val touchBehavior by viewModel.touchBehavior.collectAsState()
 
     Column(modifier = Modifier.fillMaxSize()) {
         TopAppBar(
@@ -109,9 +110,59 @@ fun SettingsScreen(
             }
 
             item {
+                Spacer(modifier = Modifier.height(8.dp))
+                SectionHeader("Input")
+                TouchBehaviorSelector(
+                    selectedBehavior = touchBehavior,
+                    onBehaviorSelected = { viewModel.setTouchBehavior(it) },
+                )
+            }
+
+            item {
                 Spacer(modifier = Modifier.height(16.dp))
             }
         }
+    }
+}
+
+@Composable
+private fun SectionHeader(title: String) {
+    Text(
+        text = title,
+        style = MaterialTheme.typography.titleSmall,
+        fontWeight = FontWeight.Bold,
+        color = MaterialTheme.colorScheme.primary,
+        modifier = Modifier.padding(vertical = 8.dp),
+    )
+}
+
+@Composable
+private fun FontSizeSlider(
+    value: Float,
+    onValueChange: (Float) -> Unit,
+) {
+    Column {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+        ) {
+            Text("Font Size", style = MaterialTheme.typography.bodyLarge)
+            Text(
+                text = "%.0f sp".format(value),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        Slider(
+            value = value,
+            onValueChange = onValueChange,
+            valueRange = 8f..32f,
+            steps = 23,
+            colors =
+                SliderDefaults.colors(
+                    thumbColor = MaterialTheme.colorScheme.primary,
+                ),
+        )
     }
 }
 
@@ -167,47 +218,6 @@ private fun FontFamilySelector(
 }
 
 @Composable
-private fun SectionHeader(title: String) {
-    Text(
-        text = title,
-        style = MaterialTheme.typography.titleSmall,
-        fontWeight = FontWeight.Bold,
-        color = MaterialTheme.colorScheme.primary,
-        modifier = Modifier.padding(vertical = 8.dp),
-    )
-}
-
-@Composable
-private fun FontSizeSlider(
-    value: Float,
-    onValueChange: (Float) -> Unit,
-) {
-    Column {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-        ) {
-            Text("Font Size", style = MaterialTheme.typography.bodyLarge)
-            Text(
-                text = "%.0f sp".format(value),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-        Slider(
-            value = value,
-            onValueChange = onValueChange,
-            valueRange = 8f..32f,
-            steps = 23,
-            colors =
-                SliderDefaults.colors(
-                    thumbColor = MaterialTheme.colorScheme.primary,
-                ),
-        )
-    }
-}
-
-@Composable
 private fun ThemeSelector(
     selectedTheme: String,
     onThemeSelected: (String) -> Unit,
@@ -235,13 +245,6 @@ private fun ThemePreview(
     isSelected: Boolean,
     onClick: () -> Unit,
 ) {
-    val borderColor =
-        if (isSelected) {
-            MaterialTheme.colorScheme.primary
-        } else {
-            Color.Transparent
-        }
-
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier =
@@ -349,5 +352,48 @@ private fun ScrollbackSlider(
                     thumbColor = MaterialTheme.colorScheme.primary,
                 ),
         )
+    }
+}
+
+@Composable
+private fun TouchBehaviorSelector(
+    selectedBehavior: String,
+    onBehaviorSelected: (String) -> Unit,
+) {
+    val behaviors =
+        listOf(
+            "right_click" to "Right click (paste)",
+            "middle_click" to "Middle click (paste)",
+            "none" to "No action",
+        )
+
+    Column {
+        behaviors.forEach { (value, label) ->
+            Row(
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(8.dp))
+                        .clickable { onBehaviorSelected(value) }
+                        .padding(vertical = 12.dp, horizontal = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Box(
+                    modifier =
+                        Modifier
+                            .size(16.dp)
+                            .clip(RoundedCornerShape(50))
+                            .background(
+                                if (selectedBehavior == value) {
+                                    MaterialTheme.colorScheme.primary
+                                } else {
+                                    MaterialTheme.colorScheme.outline
+                                },
+                            ),
+                )
+                Spacer(modifier = Modifier.width(12.dp))
+                Text(label, style = MaterialTheme.typography.bodyLarge)
+            }
+        }
     }
 }

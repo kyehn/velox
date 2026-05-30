@@ -79,6 +79,10 @@ class TerminalViewModel
             settingsRepository.fontFamily
                 .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "JetBrains Mono Nerd Font")
 
+        val touchBehavior: StateFlow<String> =
+            settingsRepository.touchBehavior
+                .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "right_click")
+
         fun setFontSize(size: Float) {
             viewModelScope.launch {
                 settingsRepository.setFontSize(size)
@@ -88,6 +92,12 @@ class TerminalViewModel
         fun setFontFamily(family: String) {
             viewModelScope.launch {
                 settingsRepository.setFontFamily(family)
+            }
+        }
+
+        fun setTouchBehavior(behavior: String) {
+            viewModelScope.launch {
+                settingsRepository.setTouchBehavior(behavior)
             }
         }
 
