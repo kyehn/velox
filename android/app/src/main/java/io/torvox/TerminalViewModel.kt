@@ -9,6 +9,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
+import io.torvox.runtime.TorvoxRuntime
 import io.torvox.settings.SettingsRepository
 import io.torvox.ui.ModifierKey
 import io.torvox.ui.defaultModifierKeys
@@ -55,6 +56,7 @@ class TerminalViewModel
     constructor(
         @ApplicationContext private val context: Context,
         private val settingsRepository: SettingsRepository,
+        val runtime: TorvoxRuntime,
     ) : ViewModel() {
         private val _state = MutableStateFlow(TerminalState())
         val state: StateFlow<TerminalState> = _state.asStateFlow()
@@ -218,6 +220,8 @@ class TerminalViewModel
         }
 
         fun writeToPty(data: ByteArray) {
+            // TODO: write_to_pty not available in current UniFFI bindings
+            // Need boltffi regeneration to expose this API
             _state.value = _state.value.copy(pendingInput = data)
         }
 
