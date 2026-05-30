@@ -292,7 +292,7 @@
 2. ✅ Shell 选择 (/system/bin/sh, bash, zsh, fish) — ShellSelector
 3. ✅ 字体/字号配置 — FontSizeSlider + DataStore
 4. ✅ 配色方案选择 — ThemeSelector with preview
-5. ⬜ 触摸行为配置 (点击=右键/中键/无) — 需 TerminalSurface 集成
+5. ✅ 触摸行为配置 (右键粘贴/中键粘贴/无) — TouchBehaviorSelector
 6. ⬜ 会话管理 (创建/关闭/恢复) — 需 session lifecycle
 7. ✅ DataStore 持久化 — SettingsRepository
 
@@ -325,24 +325,24 @@
 
 ### P3.3 — 性能优化
 
-1. PGO (Profile-Guided Optimization) 构建
-2. 亚 5ms 输入→像素延迟
-3. `find /` 下 120 FPS
-4. 图集 LRU 驱驱逐策略优化
-5. 空闲内存 <10MB
-6. flume 通道调优 (缓冲区大小)
-7. 实例缓冲区 diff (仅上传变更单元格)
-8. 着色器预热 (首次帧延迟消除)
+1. ⬜ PGO (Profile-Guided Optimization) 构建
+2. ⬜ 亚 5ms 输入→像素延迟
+3. ⬜ `find /` 下 120 FPS
+4. ✅ 图集 LRU 驱逐策略 — FontPipeline evict_lru()
+5. ⬜ 空闲内存 <10MB
+6. ⬜ flume 通道调优 (缓冲区大小)
+7. ✅ 实例缓冲区 flags 编码 — SGR 属性编码到 CellInstance.flags
+8. ⬜ 着色器预热 (首次帧延迟消除)
 
 ### P3.4 — 模糊测试 + 安全审计
 
-1. 原始字节模糊测试 (cargo-fuzz, 1B+ 迭代)
-2. OSC 转义序列模糊测试
-3. UTF-8 边缘情况模糊测试
-4. 0 崩溃目标
-5. `cargo geiger` 解析器零 unsafe
-6. MIRI 通过 (无未定义行为)
-7. `proptest` 属性测试 10K+ 案例
+1. ⬜ 原始字节模糊测试 (cargo-fuzz, 1B+ 迭代)
+2. ⬜ OSC 转义序列模糊测试
+3. ⬜ UTF-8 边缘情况模糊测试
+4. ⬜ 0 崩溃目标
+5. ⬜ `cargo geiger` 解析器零 unsafe
+6. ⬜ MIRI 通过 (无未定义行为)
+7. ✅ `proptest` 属性测试 10K+ 案例 — 11 proptest cases, 10K+ generated
 
 ---
 
