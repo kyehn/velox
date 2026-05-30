@@ -2430,7 +2430,6 @@ version = "0.1.0"
 dependencies = [
  "proptest",
  "torvox-core",
- "torvox-renderer",
  "torvox-terminal",
 ]
 

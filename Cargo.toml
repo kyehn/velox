@@ -10,9 +10,11 @@ members = [
   "torvox-integration-tests",
   "torvox-bench",
 ]
-package.edition = "2024"
-package.rust-version = "1.95"
-package.license = "UNLICENSED"
+
+[workspace.package]
+edition = "2024"
+rust-version = "1.95"
+license = "UNLICENSED"
 
 [workspace.dependencies]
 torvox-core = { path = "torvox-core" }

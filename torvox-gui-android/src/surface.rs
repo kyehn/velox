@@ -23,6 +23,7 @@ pub struct AndroidSurface {
     parser: VtParser,
     atlas_width: u32,
     atlas_height: u32,
+    theme: torvox_core::config::Theme,
 }
 
 impl AndroidSurface {
@@ -40,6 +41,7 @@ impl AndroidSurface {
             parser: VtParser::new(),
             atlas_width,
             atlas_height,
+            theme: torvox_core::config::Theme::catppuccin_mocha(),
         }
     }
 
@@ -108,8 +110,11 @@ impl AndroidSurface {
         self.gpu.upload_atlas(&atlas_data, aw, ah);
     }
 
-    pub fn set_theme(&mut self, _theme: torvox_core::config::Theme) {
-        // Theme colors are applied per-cell in build_cell_instances.
-        // The clear color and default fg/bg will be updated on next render.
+    pub fn set_theme(&mut self, theme: torvox_core::config::Theme) {
+        self.theme = theme;
+    }
+
+    pub fn theme(&self) -> &torvox_core::config::Theme {
+        &self.theme
     }
 }
