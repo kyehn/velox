@@ -70,7 +70,8 @@ fun TerminalScreen(
                     factory = { context ->
                         io.torvox.ui.TerminalSurface(context).apply {
                             initialize(viewModel)
-                            setDimensions(24, 80)
+                            val cfg = viewModel.runtime.state.value
+                            setDimensions(cfg.rows, cfg.cols)
                             setMaxScrollback(50000)
                             onSwipeLeft = {
                                 viewModel.writeToPty("\u001b".toByteArray())
