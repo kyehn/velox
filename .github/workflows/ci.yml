@@ -48,6 +48,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-linux-android
+      - name: Install cargo-ndk
+        run: cargo install cargo-ndk@4.1.2
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: emulator-x86_64
       - name: Enable KVM
         run: |
           echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
@@ -58,12 +66,19 @@ jobs:
           distribution: temurin
           java-version: 17
       - uses: android-actions/setup-android@v3
+      - name: Build cdylib (x86_64 only for emulator)
+        run: cargo ndk -t x86_64 --manifest-path torvox-gui-android/Cargo.toml -o android/app/src/main/jniLibs build --profile dev
+      - name: Build torvox-exec (x86_64 for emulator)
+        env:
+          ANDROID_NDK_ROOT: /usr/local/lib/android/sdk/ndk/29.0.14206865
+          CARGO_TARGET_X86_64_LINUX_ANDROID_LINKER: /usr/local/lib/android/sdk/ndk/29.0.14206865/toolchains/llvm/prebuilt/linux-x86_64/bin/x86_64-linux-android33-clang
+        run: |
+          cargo build -p torvox-exec --target x86_64-linux-android --profile dev
+          mkdir -p android/app/src/main/assets/bin/x86_64
+          cp target/x86_64-linux-android/debug/torvox-exec android/app/src/main/assets/bin/x86_64/
       - name: Build debug APK
         working-directory: android
         run: ./gradlew assembleDebug
-      - name: Build release APK (debug signing)
-        working-directory: android
-        run: ./gradlew assembleRelease
       - name: Android Emulator UI Test
         uses: reactivecircus/android-emulator-runner@v2
         with:
