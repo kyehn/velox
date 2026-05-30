@@ -27,6 +27,7 @@ Thumbs.db
 
 # Generated
 *.log
+boltffi.toml
 
 # Nix
 result/

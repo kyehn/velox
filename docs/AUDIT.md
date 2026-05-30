@@ -135,6 +135,7 @@
 - 运行时可能因 checksum 不匹配而崩溃
 
 **待修复**:
-1. 安装 `boltffi_cli`: `cargo install boltffi_cli`
-2. 运行 `boltffi pack android target/debug/libtorvox_android.so --language kotlin --output-dir android/app/src/main/java/io/torvox/bridge/`
-3. 验证 Kotlin 端新 API 可用
+1. 需要 `cargo-ndk` 安装后交叉编译 Android cdylib
+2. 然后 `boltffi generate kotlin` 从编译后的库提取 API
+3. 当前 `boltffi generate` 只生成运行时辅助代码 (WireReader/WireWriter)，不包含 API 类型
+4. 需要在 CI 或 Nix devshell 中完成此步骤

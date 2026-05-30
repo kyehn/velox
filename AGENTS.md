@@ -123,6 +123,21 @@
 - **开发方法**: 规范驱动开发 (SDD) — 先写规范，再 AI 生成实现
 - **许可证**: UNLICENSED — 仅作者和 AI 使用，不添加 license 声明
 
+## 技术栈
+
+| 层 | 技术 |
+|----|------|
+| 核心引擎 | Rust (stable, Edition 2024, MSRV 1.95) |
+| GPU 渲染 | wgpu 29 (Vulkan) |
+| VT 解析器 | vte 0.15 (Paul Williams FSM) |
+| FFI 绑定 | boltffi 0.25 (Rust 宏) / UniFFI 生成的 Kotlin 绑定 (待用 boltffi 重新生成) |
+| Android UI | Kotlin 2.3.21 + Compose BOM 2026.05.00 + Material 3 |
+| DI | Hilt 2.59.2 + KSP 2.3.9 |
+| 持久化 | DataStore Preferences |
+| 最低 SDK | Android 13 (API 33, Vulkan 1.3) |
+
+完整版本锁定见 `docs/ARCHITECTURE.md §技术版本锁定`。
+
 ## 设计哲学 (摘要，详见 VISION.md)
 
 1. **库优先** — `torvox-core` 零 Android 依赖，可嵌入任何应用
