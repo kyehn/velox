@@ -9,7 +9,7 @@
 |---|------|----|----|------|--------|
 | 1 | VT解析器 | vte 0.15 | libghostty-vt 0.1 | ✅ 完成 | 高 |
 | 2 | 通道库 | crossbeam 0.8 | flume 0.11 | ✅ 完成 | 低 |
-| 3 | 序列化 | postcard 1.1 | dev-dependency | ✅ 完成 | 低 |
+| 3 | 序列化 | postcard 1.1 | 已移除 | ✅ 完成 | 低 |
 | 4 | 图集打包 | etagere 0.3 | guillotière 0.7 | ✅ 完成 | 低 |
 | 5 | Rust-Kotlin绑定 | UniFFI 0.31 | boltffi 0.25 | ✅ 完成 | 高 |
 
@@ -39,11 +39,13 @@
 **变更范围**:
 - `torvox-terminal/src/session.rs`: flume::{bounded, Receiver}
 
-### 2.3 postcard → dev-dependency ✅
+### 2.3 postcard → 已移除 ✅
 
 **变更范围**:
-- `torvox-core/Cargo.toml`: postcard 移至 [dev-dependencies]
-- 测试中的 postcard roundtrip 保留，验证序列化兼容性
+- `Cargo.toml`: 从 workspace dependencies 移除 postcard
+- `torvox-core/Cargo.toml`: 移除 `[dev-dependencies]` section
+- `torvox-core/src/`: 移除所有 postcard roundtrip 测试 (14 个测试函数)
+- 类型保留 `serde::Serialize`/`Deserialize` derive，无需序列化库
 
 ### 2.4 etagere → guillotière ✅
 

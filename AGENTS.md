@@ -248,7 +248,7 @@
 │ ✗ 添加 Java 文件 — 仅 Kotlin                                              │
 │ ✗ 依赖 Termux — Torvox 是独立项目                                         │
 │ ✗ 使用 portable-pty — 不支持 Android，用 nix 0.31 crate                  │
-│ ✗ 使用 bincode — 已废弃 (RUSTSEC-2025-0141)，用 postcard 1.1             │
+│ ✗ 使用 bincode — 已废弃 (RUSTSEC-2025-0141)，用 serde derive            │
 │ ✗ 使用 rust-android-gradle — AGP 9.0+ 移除 AppExtension，不兼容          │
 │   用 scripts/build-android-libs.nu (cargo-ndk v4) 代替                    │
 │ ✗ 在库 crate 中使用 anyhow — 库用 thiserror 2，仅二进制可用 eyre         │
@@ -407,7 +407,7 @@ nix develop --command cargo nextest  # 直接运行
 | swash | 0.2.7 | 字体光栅化 (内部用 skrifa 做 scaling) |
 | etagere | 0.3 | 字形图集打包 |
 | boltffi | 0.25 | Kotlin 绑定生成 |
-| postcard | 1.1 | 序列化 (替代 bincode) |
+| postcard | 1.1 | 已移除 (原用于测试序列化) |
 | thiserror | 2 | 错误类型 (torvox-core 中 optional) |
 | tokio | 1.43 | 仅异步运行时 (热路径用 crossbeam) |
 | crossbeam | 0.8 | 无锁 SPSC 队列 (PTY→解析器) |
@@ -437,7 +437,7 @@ nix develop --command cargo nextest  # 直接运行
 | Clippy | `--deny warnings` 每 PR 必需 | 零警告策略 |
 | `unsafe` | `torvox-core` 中 **零**。仅 `torvox-gui-android` FFI 桥接和 `torvox-terminal::pty` 中 | 每个 unsafe 块注释安全不变量 |
 | 错误处理 | `thiserror 2` (库) + `eyre` (二进制)。**库 crate 中无 `anyhow`** | thiserror 在 torvox-core 中 optional (需 std feature) |
-| 序列化 | `postcard 1.1` (不用 bincode，已废弃 RUSTSEC-2025-0141) | |
+| 序列化 | `serde derive` (不用 bincode/postcard，已废弃) | |
 | 测试 | `cargo nextest` 替代 `cargo test`。内联 `#[cfg(test)] mod tests` | 集成测试在 `torvox-integration-tests` |
 | 属性测试 | `proptest 1.11` — VT 解析器和 Grid 必须有 | 最少 10K 用例 |
 | 命名 | 函数/变量 `snake_case`，类型 `PascalCase`，常量 `SCREAMING_SNAKE` | |
@@ -496,7 +496,7 @@ nix develop --command cargo nextest  # 直接运行
 - **每个公共函数**: 必须有单元测试
 - **VT 解析器**: proptest (10K+ 用例) + fuzz (每夜 1B+ 迭代)
 - **Grid/DirtyMask**: proptest (不变量: mark 后 is_dirty 为 true, clear 后 any_dirty 为 false)
-- **序列化**: 每个可序列化类型须有 postcard roundtrip 测试
+- **序列化**: 每个可序列化类型须有 serde roundtrip 测试
 - **PTY**: 非阻塞读写、resize、kill_on_drop (Linux 单元测试, Android 集成测试)
 - **boltffi 桥接**: Kotlin 调用 Rust 函数，返回值正确 (端到端测试)
 
@@ -587,7 +587,7 @@ fontdb → cosmic-text 0.19 (整形) → swash 0.2.7 (光栅化, 内部用 skrif
 [ ] 该类型是否通过 boltffi 导出? (检查 bridge.rs)
 [ ] bridge.rs 的桥接类型是否需要同步更新?
 [ ] boltffi Kotlin 绑定是否需要重新生成?
-[ ] 此类型变更是否影响 postcard 序列化格式? (破坏性变更?)
+[ ] 此类型变更是否影响 serde 序列化格式? (破坏性变更?)
 [ ] 相关单元测试是否需要更新?
 ```
 
@@ -633,7 +633,7 @@ fontdb → cosmic-text 0.19 (整形) → swash 0.2.7 (光栅化, 内部用 skrif
 
 ## 序列化兼容性
 
-15. [ ] 修改了 postcard 序列化的类型? → 评估是否破坏已保存状态兼容性
+15. [ ] 修改了 serde 序列化的类型? → 评估是否破坏已保存状态兼容性
 
 ---
 

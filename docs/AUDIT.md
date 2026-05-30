@@ -1,7 +1,7 @@
 # Torvox 审计报告
 
 > 日期: 2026-05-30
-> 测试: 166 全部通过 | Clippy: 零警告 | 格式化: 通过
+> 测试: 215 全部通过 | Clippy: 零警告 | 格式化: 通过
 
 ## 一、当前完成状态
 
@@ -22,7 +22,7 @@
 | 1 | VT解析器 | vte 0.15 | libghostty-vt 0.1 | ✅ 完成 |
 | 2 | 通道库 | crossbeam 0.8 | flume 0.11 | ✅ 完成 |
 | 3 | 图集打包 | etagere 0.3 | guillotière 0.7 | ✅ 完成 |
-| 4 | 序列化 | postcard 1.1 | dev-dependency | ✅ 完成 |
+| 4 | 序列化 | postcard 1.1 | 已移除 | ✅ 完成 |
 | 5 | Rust-Kotlin绑定 | UniFFI 0.31 | boltffi 0.25 | ✅ 完成 |
 
 **UniFFI → boltffi 迁移已完成**: 所有 UniFFI 引用已更新为 boltffi 等效项。
@@ -32,7 +32,7 @@ boltffi 0.25 使用 `#[data]`/`#[error]`/`#[boltffi::export]` 注解，不需要
 
 | 指标 | 值 |
 |------|-----|
-| 测试总数 | 166 (76 core + 7 gui + 4 integration + 14 renderer + 65 terminal) |
+| 测试总数 | 215 (62 core + 7 gui + 4 integration + 14 renderer + 128 terminal) |
 | unsafe块 | 有 (全部有SAFETY注释) |
 | unwrap(库代码) | 0 (全部改为expect或if-let) |
 | Clippy | 零警告 |
@@ -52,7 +52,7 @@ boltffi 0.25 使用 `#[data]`/`#[error]`/`#[boltffi::export]` 注解，不需要
 | thiserror | 2.0.18 | 库错误类型 | ✅ |
 | boltffi | 0.25 | Kotlin绑定 | ✅ |
 | proptest | 1.11 | 属性测试 | ✅ |
-| postcard | 1.1.3 | 测试序列化 | ✅ (dev-dependency) |
+| postcard | 1.1.3 | 已移除 | ✅ |
 
 ## 五、构建依赖
 
@@ -68,7 +68,7 @@ Ghostty VT 构建需要 zig 0.15.2。已通过 nix flake 配置：
 | VT解析器 | libghostty-vt 0.1 | SIMD优化，VT100-520完整兼容 |
 | 通道库 | flume 0.11 | 更快，无unsafe |
 | 图集打包 | guillotière 0.7 | 相同作者，更现代的算法 |
-| 序列化 | postcard → dev-dep | 仅测试用，不进入生产代码 |
+| 序列化 | postcard → 已移除 | 不需要序列化，类型通过 serde derive 保留 |
 | Rust-Kotlin绑定 | boltffi 0.25 | 类型安全绑定，不需要配置文件 |
 | GPU API | wgpu 29 | 跨平台，WebGPU标准 |
 | 渲染管线 | FlatGrid + build_cell_instances_from_flat | 适配 Ghostty VT RenderState |
