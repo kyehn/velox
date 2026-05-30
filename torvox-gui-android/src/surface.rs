@@ -1,6 +1,7 @@
 use thiserror::Error;
 use torvox_renderer::font::FontPipeline;
 use torvox_renderer::gpu::GpuContext;
+use torvox_terminal::parser::VtParser;
 use torvox_terminal::terminal::TerminalState;
 
 #[derive(Debug, Error)]
@@ -19,6 +20,7 @@ pub struct AndroidSurface {
     gpu: GpuContext,
     font_pipeline: FontPipeline,
     terminal: TerminalState,
+    parser: VtParser,
     atlas_width: u32,
     atlas_height: u32,
 }
@@ -35,6 +37,7 @@ impl AndroidSurface {
             gpu: GpuContext::new_with_no_surface(),
             font_pipeline,
             terminal,
+            parser: VtParser::new(),
             atlas_width,
             atlas_height,
         }
@@ -87,7 +90,7 @@ impl AndroidSurface {
         self.terminal.resize(rows, cols);
     }
 
-    pub fn write_to_pty(&mut self, _data: &[u8]) {
-        // Will be connected to PtyPair in integration
+    pub fn write_to_pty(&mut self, data: &[u8]) {
+        self.parser.advance(&mut self.terminal, data);
     }
 }

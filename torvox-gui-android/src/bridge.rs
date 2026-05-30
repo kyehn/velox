@@ -332,6 +332,16 @@ impl TorvoxBridge {
         self.config.clone()
     }
 
+    fn write_to_pty(&self, data: Vec<u8>) -> Result<(), TerminalError> {
+        let mut surface_guard = self.surface.lock().map_err(|e| TerminalError::PtyError {
+            detail: format!("lock failed: {}", e),
+        })?;
+        if let Some(surface) = surface_guard.as_mut() {
+            surface.write_to_pty(&data);
+        }
+        Ok(())
+    }
+
     fn echo_cells(&self, cells: Vec<BridgeCell>) -> Vec<BridgeCell> {
         cells
     }
