@@ -77,7 +77,7 @@
 
 | 决策 | 选择 | 理由 |
 |------|------|------|
-| VT解析器 | **迁移到 Ghostty VT** | SIMD优化，VT100-520完整兼容，C/Zig FFI |
+| VT解析器 | **迁移到 Ghostty VT** ✅已验证 | SIMD优化，VT100-520完整兼容，C/Zig FFI |
 | 通道库 | **迁移到 flume** | 更快，无unsafe |
 | GPU API | 保持 wgpu 29 | 跨平台，Android原生支持，WebGPU标准 |
 | 图集打包 | **迁移到 guillotière** | 相同作者，更现代的算法 |
