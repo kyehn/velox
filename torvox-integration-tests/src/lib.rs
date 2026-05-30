@@ -9,7 +9,7 @@ mod parse_and_render {
     fn parse_then_verify_terminal() {
         use torvox_terminal::terminal::TerminalState;
 
-        let mut state = TerminalState::new(24, 80);
+        let mut state = TerminalState::new(24, 80).unwrap();
 
         state.process_bytes(b"Hello, World!\r\n");
         state.process_bytes(b"\x1b[31mRed\x1b[0m\r\n");
@@ -23,7 +23,7 @@ mod parse_and_render {
     fn scrollback_preserved_on_scroll() {
         use torvox_terminal::terminal::TerminalState;
 
-        let mut state = TerminalState::new(3, 10);
+        let mut state = TerminalState::new(3, 10).unwrap();
 
         for i in 0..10 {
             let line = format!("line{}\r\n", i);
@@ -38,7 +38,7 @@ mod parse_and_render {
     fn sgr_color_persists_across_cells() {
         use torvox_terminal::terminal::TerminalState;
 
-        let mut state = TerminalState::new(1, 80);
+        let mut state = TerminalState::new(1, 80).unwrap();
 
         state.process_bytes(b"\x1b[31mABC");
         assert!(state.update_render_state());
@@ -60,10 +60,6 @@ mod session_lifecycle {
         let mut found = false;
         while std::time::Instant::now() < deadline {
             let changed = session.process_output();
-            // The terminal produced output, which means the session works.
-            // Checking for exact text content via Ghostty VT render state is
-            // complex due to lifetime constraints; we verify the session
-            // pipeline is functional by checking it doesn't error.
             if changed || session.is_exited() {
                 found = true;
                 break;

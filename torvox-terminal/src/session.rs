@@ -7,7 +7,7 @@ use flume::{Receiver, bounded};
 use thiserror::Error;
 
 use crate::pty::{PtyError, PtyPair};
-use crate::terminal::TerminalState;
+use crate::terminal::{TerminalState, TerminalStateError};
 
 const READ_BUF_SIZE: usize = 8192;
 
@@ -17,6 +17,8 @@ pub enum SessionError {
     Pty(#[from] PtyError),
     #[error("io error: {0}")]
     Io(#[from] std::io::Error),
+    #[error("terminal state error: {0}")]
+    TerminalState(#[from] TerminalStateError),
     #[error("session closed")]
     Closed,
 }
@@ -51,9 +53,10 @@ impl Session {
 
         fn notify_output(notify: &Arc<(Mutex<bool>, Condvar)>) {
             let (lock, cvar) = &**notify;
-            let mut pending = lock.lock().unwrap();
-            *pending = true;
-            cvar.notify_one();
+            if let Ok(mut pending) = lock.lock() {
+                *pending = true;
+                cvar.notify_one();
+            }
         }
 
         let exited_read = exited.clone();
@@ -110,7 +113,7 @@ impl Session {
 
         Ok(Self {
             pty,
-            terminal: TerminalState::new(rows, cols),
+            terminal: TerminalState::new(rows, cols)?,
             output_rx,
             output_notify,
             exited,
@@ -136,9 +139,14 @@ impl Session {
 
     pub fn wait_for_output(&self) {
         let (lock, cvar) = &*self.output_notify;
-        let mut pending = lock.lock().unwrap();
+        let Ok(mut pending) = lock.lock() else {
+            return;
+        };
         while !*pending {
-            pending = cvar.wait(pending).unwrap();
+            let Ok(p) = cvar.wait(pending) else {
+                return;
+            };
+            pending = p;
         }
         *pending = false;
     }

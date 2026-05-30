@@ -1,7 +1,16 @@
 use libghostty_vt::render::Dirty;
 use libghostty_vt::{RenderState, Terminal};
+use thiserror::Error;
 
 use crate::parser::VtParser;
+
+#[derive(Debug, Error)]
+pub enum TerminalStateError {
+    #[error("failed to create Ghostty VT terminal: {0}")]
+    GhosttyVtInit(String),
+    #[error("failed to create render state: {0}")]
+    RenderStateInit(String),
+}
 
 pub struct TerminalState {
     parser: VtParser,
@@ -9,14 +18,15 @@ pub struct TerminalState {
 }
 
 impl TerminalState {
-    pub fn new(rows: u32, cols: u32) -> Self {
-        let parser =
-            VtParser::new(rows as u16, cols as u16).expect("failed to create Ghostty VT terminal");
-        let render_state = RenderState::new().expect("failed to create Ghostty VT render state");
-        Self {
+    pub fn new(rows: u32, cols: u32) -> Result<Self, TerminalStateError> {
+        let parser = VtParser::new(rows as u16, cols as u16)
+            .map_err(|e| TerminalStateError::GhosttyVtInit(e.to_string()))?;
+        let render_state =
+            RenderState::new().map_err(|e| TerminalStateError::RenderStateInit(e.to_string()))?;
+        Ok(Self {
             parser,
             render_state,
-        }
+        })
     }
 
     pub fn rows(&self) -> u32 {
@@ -41,9 +51,9 @@ impl TerminalState {
     }
 
     pub fn update_render_state(&mut self) -> bool {
-        // SAFETY: render_state and terminal are separate fields.
-        // render_state.update() only reads from terminal and writes to render_state.
-        // This is equivalent to what libghostty-vt does internally.
+        // SAFETY: render_state and terminal are separate fields of TerminalState.
+        // render_state.update() reads from terminal and writes to render_state.
+        // No overlapping mutable borrows exist — this mirrors libghostty-vt's internal pattern.
         let render_state_ptr: *mut RenderState<'static> = &mut self.render_state;
         let terminal_ptr: *const Terminal<'static, 'static> = self.parser.terminal();
         unsafe {
@@ -86,14 +96,14 @@ mod tests {
 
     #[test]
     fn terminal_state_creation() {
-        let state = TerminalState::new(24, 80);
+        let state = TerminalState::new(24, 80).unwrap();
         assert_eq!(state.rows(), 24);
         assert_eq!(state.cols(), 80);
     }
 
     #[test]
     fn terminal_state_resize() {
-        let mut state = TerminalState::new(24, 80);
+        let mut state = TerminalState::new(24, 80).unwrap();
         state.resize(40, 120);
         assert_eq!(state.rows(), 40);
         assert_eq!(state.cols(), 120);
@@ -101,14 +111,14 @@ mod tests {
 
     #[test]
     fn terminal_state_process_bytes() {
-        let mut state = TerminalState::new(24, 80);
+        let mut state = TerminalState::new(24, 80).unwrap();
         state.process_bytes(b"Hello, world!\r\n");
         assert!(state.update_render_state());
     }
 
     #[test]
     fn terminal_state_title() {
-        let mut state = TerminalState::new(24, 80);
+        let mut state = TerminalState::new(24, 80).unwrap();
         state.process_bytes(b"\x1b]2;Hello\x1b\\");
         assert_eq!(state.title(), "Hello");
     }

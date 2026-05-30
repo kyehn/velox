@@ -259,7 +259,11 @@ impl TorvoxBridge {
         })?;
         if surface_guard.is_none() {
             let mut surface =
-                crate::surface::AndroidSurface::new(self.config.rows, self.config.cols);
+                crate::surface::AndroidSurface::new(self.config.rows, self.config.cols).map_err(
+                    |e| TerminalError::PtyError {
+                        detail: e.to_string(),
+                    },
+                )?;
             surface
                 .set_native_window(window_ptr as *mut std::ffi::c_void)
                 .map_err(|e| TerminalError::PtyError {

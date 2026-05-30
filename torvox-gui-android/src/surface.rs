@@ -14,6 +14,8 @@ pub enum SurfaceError {
     NoSurface,
     #[error("Render error: {0}")]
     Render(String),
+    #[error("Terminal init failed: {0}")]
+    TerminalInit(String),
 }
 
 pub struct AndroidSurface {
@@ -33,15 +35,16 @@ unsafe impl Send for AndroidSurface {}
 unsafe impl Sync for AndroidSurface {}
 
 impl AndroidSurface {
-    pub fn new(rows: u32, cols: u32) -> Self {
+    pub fn new(rows: u32, cols: u32) -> Result<Self, SurfaceError> {
         let atlas_width = 2048;
         let atlas_height = 2048;
         let mut font_pipeline = FontPipeline::new(atlas_width as i32, atlas_height as i32, 14.0);
         font_pipeline.rasterize_ascii();
-        let terminal = TerminalState::new(rows, cols);
+        let terminal = TerminalState::new(rows, cols)
+            .map_err(|e| SurfaceError::TerminalInit(e.to_string()))?;
         let flat_grid = FlatGrid::new(rows, cols);
 
-        Self {
+        Ok(Self {
             gpu: GpuContext::new_with_no_surface(),
             font_pipeline,
             session: None,
@@ -49,7 +52,7 @@ impl AndroidSurface {
             flat_grid,
             atlas_width,
             atlas_height,
-        }
+        })
     }
 
     pub fn spawn_session(&mut self, shell: &str) -> Result<(), SurfaceError> {
@@ -87,60 +90,68 @@ impl AndroidSurface {
             terminal.render_state_mut();
         let terminal_ptr: *const libghostty_vt::Terminal<'static, 'static> = terminal.terminal();
 
+        // SAFETY: render_state and terminal are separate fields of TerminalState.
+        // render_state.update() reads from terminal and writes to render_state.
+        // No overlapping mutable borrows exist — this mirrors libghostty-vt's internal pattern.
         unsafe {
-            if let Ok(snapshot) = (*render_state_ptr).update(&*terminal_ptr) {
-                let mut rows_iter = RowIterator::new().expect("failed to create row iterator");
-                let mut cells_iter = CellIterator::new().expect("failed to create cell iterator");
-                let mut row_iter = rows_iter
-                    .update(&snapshot)
-                    .expect("failed to update row iterator");
+            let Ok(snapshot) = (*render_state_ptr).update(&*terminal_ptr) else {
+                return;
+            };
+            let Ok(mut rows_iter) = RowIterator::new() else {
+                return;
+            };
+            let Ok(mut cells_iter) = CellIterator::new() else {
+                return;
+            };
+            let Ok(mut row_iter) = rows_iter.update(&snapshot) else {
+                return;
+            };
 
-                let mut row_index = 0u32;
-                while let Some(row) = row_iter.next() {
-                    let mut cell_iter = cells_iter
-                        .update(row)
-                        .expect("failed to update cell iterator");
-                    let mut col_index = 0u32;
-                    while let Some(cell) = cell_iter.next() {
-                        let ch = cell
-                            .graphemes()
-                            .ok()
-                            .and_then(|g| g.first().copied())
-                            .unwrap_or(' ');
+            let mut row_index = 0u32;
+            while let Some(row) = row_iter.next() {
+                let Ok(mut cell_iter) = cells_iter.update(row) else {
+                    continue;
+                };
+                let mut col_index = 0u32;
+                while let Some(cell) = cell_iter.next() {
+                    let ch = cell
+                        .graphemes()
+                        .ok()
+                        .and_then(|g| g.first().copied())
+                        .unwrap_or(' ');
 
-                        let fg = cell
-                            .fg_color()
-                            .ok()
-                            .flatten()
-                            .map(|c| {
-                                [
-                                    c.r as f32 / 255.0,
-                                    c.g as f32 / 255.0,
-                                    c.b as f32 / 255.0,
-                                    1.0,
-                                ]
-                            })
-                            .unwrap_or([1.0, 1.0, 1.0, 1.0]);
+                    let fg = cell
+                        .fg_color()
+                        .ok()
+                        .flatten()
+                        .map(|c| {
+                            [
+                                c.r as f32 / 255.0,
+                                c.g as f32 / 255.0,
+                                c.b as f32 / 255.0,
+                                1.0,
+                            ]
+                        })
+                        .unwrap_or([1.0, 1.0, 1.0, 1.0]);
 
-                        let bg = cell
-                            .bg_color()
-                            .ok()
-                            .flatten()
-                            .map(|c| {
-                                [
-                                    c.r as f32 / 255.0,
-                                    c.g as f32 / 255.0,
-                                    c.b as f32 / 255.0,
-                                    1.0,
-                                ]
-                            })
-                            .unwrap_or([0.0, 0.0, 0.0, 1.0]);
+                    let bg = cell
+                        .bg_color()
+                        .ok()
+                        .flatten()
+                        .map(|c| {
+                            [
+                                c.r as f32 / 255.0,
+                                c.g as f32 / 255.0,
+                                c.b as f32 / 255.0,
+                                1.0,
+                            ]
+                        })
+                        .unwrap_or([0.0, 0.0, 0.0, 1.0]);
 
-                        self.flat_grid.set_cell(row_index, col_index, ch, fg, bg);
-                        col_index += 1;
-                    }
-                    row_index += 1;
+                    self.flat_grid.set_cell(row_index, col_index, ch, fg, bg);
+                    col_index += 1;
                 }
+                row_index += 1;
             }
         }
     }
