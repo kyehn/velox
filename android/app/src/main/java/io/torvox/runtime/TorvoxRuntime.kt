@@ -119,6 +119,8 @@ class TorvoxRuntime
             bridge?.writeToPty(data)
         }
 
+        fun bridge(): io.torvox.bridge.TorvoxBridge? = bridge
+
         fun stop() {
             running = false
             renderThread?.join(1000)

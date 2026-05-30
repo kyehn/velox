@@ -194,6 +194,8 @@ class TerminalViewModel
         private fun extractSelectedText(selection: SelectionState): String {
             val start = selection.start ?: return ""
             val end = selection.end ?: return ""
+            val bridge = runtime.bridge() ?: return ""
+            val scrollbackLen = bridge.scrollbackLen().toInt()
             val (lo, hi) =
                 if (start.row < end.row || (start.row == end.row && start.col <= end.col)) {
                     start to end
@@ -203,18 +205,42 @@ class TerminalViewModel
             return when (selection.mode) {
                 SelectionMode.Char, SelectionMode.Word -> {
                     if (lo.row == hi.row) {
-                        "selection[${lo.row}:${lo.col}-${hi.col}]"
+                        val line = bridge.scrollbackLine((scrollbackLen + lo.row).toUInt()) ?: ""
+                        line.substring(lo.col.coerceAtMost(line.length), hi.col.coerceAtMost(line.length))
                     } else {
-                        "selection[${lo.row}:${lo.col}-${hi.row}:${hi.col}]"
+                        val parts = mutableListOf<String>()
+                        for (r in lo.row..hi.row) {
+                            val line = bridge.scrollbackLine((scrollbackLen + r).toUInt()) ?: ""
+                            val startCol = if (r == lo.row) lo.col else 0
+                            val endCol = if (r == hi.row) hi.col.coerceAtMost(line.length) else line.length
+                            if (startCol < line.length) {
+                                parts.add(line.substring(startCol, endCol.coerceAtMost(line.length)))
+                            }
+                        }
+                        parts.joinToString("\n")
                     }
                 }
 
                 SelectionMode.Line -> {
-                    "selection[line:${lo.row}-${hi.row}]"
+                    val parts = mutableListOf<String>()
+                    for (r in lo.row..hi.row) {
+                        val line = bridge.scrollbackLine((scrollbackLen + r).toUInt()) ?: ""
+                        parts.add(line)
+                    }
+                    parts.joinToString("\n")
                 }
 
                 SelectionMode.Block -> {
-                    "selection[block:${lo.row}:${lo.col}-${hi.row}:${hi.col}]"
+                    val parts = mutableListOf<String>()
+                    for (r in lo.row..hi.row) {
+                        val line = bridge.scrollbackLine((scrollbackLen + r).toUInt()) ?: ""
+                        val startCol = lo.col.coerceAtMost(line.length)
+                        val endCol = hi.col.coerceAtMost(line.length)
+                        if (startCol < line.length) {
+                            parts.add(line.substring(startCol, endCol))
+                        }
+                    }
+                    parts.joinToString("\n")
                 }
             }
         }

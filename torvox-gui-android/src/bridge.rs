@@ -317,13 +317,11 @@ pub enum TerminalError {
     InvalidConfig { detail: String },
 }
 
-#[allow(dead_code)]
 pub struct TorvoxBridge {
     config: TerminalConfig,
     surface: std::sync::Mutex<Option<crate::surface::AndroidSurface>>,
 }
 
-#[allow(dead_code)]
 #[boltffi::export]
 impl TorvoxBridge {
     pub fn new(config: TerminalConfig) -> Self {
@@ -483,10 +481,6 @@ impl TorvoxBridge {
         }
         Ok(())
     }
-
-    pub fn echo_cells(&self, cells: Vec<BridgeCell>) -> Vec<BridgeCell> {
-        cells
-    }
 }
 
 #[cfg(test)]
@@ -525,21 +519,6 @@ mod tests {
         let got = bridge.get_config();
         assert_eq!(got.shell, config.shell);
         assert_eq!(got.rows, config.rows);
-    }
-
-    #[test]
-    fn bridge_echo_cells() {
-        let config = TerminalConfig::default();
-        let bridge = TorvoxBridge::new(config);
-        let cells = vec![BridgeCell {
-            char_code: 'A' as u32,
-            fg: 0xFFFFFF,
-            bg: 0x000000,
-            attrs: BridgeAttrs::default(),
-        }];
-        let result = bridge.echo_cells(cells.clone());
-        assert_eq!(result.len(), 1);
-        assert_eq!(result[0].char_code, 'A' as u32);
     }
 
     #[test]

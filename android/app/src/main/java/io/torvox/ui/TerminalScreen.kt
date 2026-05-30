@@ -72,7 +72,14 @@ fun TerminalScreen(
                             initialize(viewModel)
                             val cfg = viewModel.runtime.state.value
                             setDimensions(cfg.rows, cfg.cols)
-                            setMaxScrollback(50000)
+                            val bridge = viewModel.runtime.bridge()
+                            val scrollbackLimit =
+                                try {
+                                    bridge?.scrollbackLen()?.toInt() ?: 50000
+                                } catch (_: Exception) {
+                                    50000
+                                }
+                            setMaxScrollback(scrollbackLimit)
                             onSwipeLeft = {
                                 viewModel.writeToPty("\u001b".toByteArray())
                             }
