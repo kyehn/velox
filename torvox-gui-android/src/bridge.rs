@@ -326,18 +326,18 @@ pub struct TorvoxBridge {
 #[allow(dead_code)]
 #[boltffi::export]
 impl TorvoxBridge {
-    fn new(config: TerminalConfig) -> Self {
+    pub fn new(config: TerminalConfig) -> Self {
         Self {
             config,
             surface: std::sync::Mutex::new(None),
         }
     }
 
-    fn ping(&self) -> String {
+    pub fn ping(&self) -> String {
         "pong".to_string()
     }
 
-    fn spawn_terminal(&self, rows: u32, cols: u32) -> Result<i32, TerminalError> {
+    pub fn spawn_terminal(&self, rows: u32, cols: u32) -> Result<i32, TerminalError> {
         let shell: torvox_core::config::Shell = self.config.shell.clone().into();
         let shell_path = match &shell {
             torvox_core::config::Shell::SystemDefault => "/system/bin/sh",
@@ -352,7 +352,7 @@ impl TorvoxBridge {
         Ok(pty.child_pid().as_raw())
     }
 
-    fn set_native_window(&self, window_ptr: i64) -> Result<(), TerminalError> {
+    pub fn set_native_window(&self, window_ptr: i64) -> Result<(), TerminalError> {
         let mut surface_guard = self.surface.lock().map_err(|e| TerminalError::PtyError {
             detail: format!("lock failed: {}", e),
         })?;
@@ -369,7 +369,7 @@ impl TorvoxBridge {
         Ok(())
     }
 
-    fn render(&self) -> Result<(), TerminalError> {
+    pub fn render(&self) -> Result<(), TerminalError> {
         let mut surface_guard = self.surface.lock().map_err(|e| TerminalError::PtyError {
             detail: format!("lock failed: {}", e),
         })?;
@@ -381,7 +381,7 @@ impl TorvoxBridge {
         Ok(())
     }
 
-    fn resize(&self, rows: u32, cols: u32) -> Result<(), TerminalError> {
+    pub fn resize(&self, rows: u32, cols: u32) -> Result<(), TerminalError> {
         let mut surface_guard = self.surface.lock().map_err(|e| TerminalError::PtyError {
             detail: format!("lock failed: {}", e),
         })?;
@@ -391,13 +391,13 @@ impl TorvoxBridge {
         Ok(())
     }
 
-    fn release_surface(&self) {
+    pub fn release_surface(&self) {
         if let Ok(mut guard) = self.surface.lock() {
             *guard = None;
         }
     }
 
-    fn scrollback_len(&self) -> u32 {
+    pub fn scrollback_len(&self) -> u32 {
         self.surface
             .lock()
             .ok()
@@ -408,7 +408,7 @@ impl TorvoxBridge {
             .unwrap_or(0)
     }
 
-    fn scrollback_line(&self, index: u32) -> Option<String> {
+    pub fn scrollback_line(&self, index: u32) -> Option<String> {
         self.surface.lock().ok().and_then(|g| {
             g.as_ref().and_then(|s| {
                 s.terminal()
@@ -427,25 +427,25 @@ impl TorvoxBridge {
         })
     }
 
-    fn get_config(&self) -> TerminalConfig {
+    pub fn get_config(&self) -> TerminalConfig {
         self.config.clone()
     }
 
-    fn get_theme_names(&self) -> Vec<String> {
+    pub fn get_theme_names(&self) -> Vec<String> {
         torvox_core::config::Theme::all_built_in()
             .into_iter()
             .map(|t| t.name)
             .collect()
     }
 
-    fn get_theme(&self, name: String) -> Option<BridgeTheme> {
+    pub fn get_theme(&self, name: String) -> Option<BridgeTheme> {
         torvox_core::config::Theme::all_built_in()
             .into_iter()
             .find(|t| t.name == name)
             .map(|t| t.into())
     }
 
-    fn set_font_size(&self, size_tenths: u32) -> Result<(), TerminalError> {
+    pub fn set_font_size(&self, size_tenths: u32) -> Result<(), TerminalError> {
         let size = size_tenths as f32 / 10.0;
         let mut surface_guard = self.surface.lock().map_err(|e| TerminalError::PtyError {
             detail: format!("lock failed: {}", e),
@@ -456,7 +456,7 @@ impl TorvoxBridge {
         Ok(())
     }
 
-    fn set_theme(&self, theme: BridgeTheme) -> Result<(), TerminalError> {
+    pub fn set_theme(&self, theme: BridgeTheme) -> Result<(), TerminalError> {
         let mut surface_guard = self.surface.lock().map_err(|e| TerminalError::PtyError {
             detail: format!("lock failed: {}", e),
         })?;
@@ -466,7 +466,7 @@ impl TorvoxBridge {
         Ok(())
     }
 
-    fn list_fonts(&self) -> Vec<String> {
+    pub fn list_fonts(&self) -> Vec<String> {
         self.surface
             .lock()
             .ok()
@@ -474,7 +474,7 @@ impl TorvoxBridge {
             .unwrap_or_default()
     }
 
-    fn write_to_pty(&self, data: Vec<u8>) -> Result<(), TerminalError> {
+    pub fn write_to_pty(&self, data: Vec<u8>) -> Result<(), TerminalError> {
         let mut surface_guard = self.surface.lock().map_err(|e| TerminalError::PtyError {
             detail: format!("lock failed: {}", e),
         })?;
@@ -484,7 +484,7 @@ impl TorvoxBridge {
         Ok(())
     }
 
-    fn echo_cells(&self, cells: Vec<BridgeCell>) -> Vec<BridgeCell> {
+    pub fn echo_cells(&self, cells: Vec<BridgeCell>) -> Vec<BridgeCell> {
         cells
     }
 }

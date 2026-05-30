@@ -220,9 +220,7 @@ class TerminalViewModel
         }
 
         fun writeToPty(data: ByteArray) {
-            // TODO: write_to_pty not available in current UniFFI bindings
-            // Need boltffi regeneration to expose this API
-            _state.value = _state.value.copy(pendingInput = data)
+            runtime.writeToPty(data)
         }
 
         fun consumePendingInput(): ByteArray? {

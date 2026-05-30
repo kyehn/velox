@@ -3,7 +3,9 @@ package io.torvox.runtime
 import android.content.Context
 import android.view.Surface
 import dagger.hilt.android.qualifiers.ApplicationContext
-import io.torvox.bridge.TorvoxBridge
+import io.torvox.bridge.Shell
+import io.torvox.bridge.TerminalConfig
+import io.torvox.bridge.createBridge
 import io.torvox.settings.SettingsRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -33,7 +35,7 @@ class TorvoxRuntime
         private val _state = MutableStateFlow(RuntimeState())
         val state: StateFlow<RuntimeState> = _state.asStateFlow()
 
-        private var bridge: TorvoxBridge? = null
+        private var bridge: io.torvox.bridge.TorvoxBridge? = null
         private var renderThread: Thread? = null
         private var running = false
 
@@ -45,14 +47,39 @@ class TorvoxRuntime
             if (running) return
 
             val config =
-                io.torvox.bridge.TerminalConfig(
-                    shell = io.torvox.bridge.Shell.SystemDefault,
+                TerminalConfig(
+                    shell = Shell.SystemDefault,
                     rows = 24u,
                     cols = 80u,
                     scrollbackLines = 50000u,
+                    font_size_tenths = 140u,
+                    theme =
+                        io.torvox.bridge.BridgeTheme(
+                            name = "Catppuccin Mocha",
+                            bg = 0x1E1E2Eu.toInt(),
+                            fg = 0xCDD6F4u.toInt(),
+                            cursor = 0xF5E0DCu.toInt(),
+                            selectionBg = 0x45475Au.toInt(),
+                            ansi0 = 0x45475Au.toInt(),
+                            ansi1 = 0xF38BA8u.toInt(),
+                            ansi2 = 0xA6E3A1u.toInt(),
+                            ansi3 = 0xF9E2AFu.toInt(),
+                            ansi4 = 0x89B4FAu.toInt(),
+                            ansi5 = 0xF5C2E7u.toInt(),
+                            ansi6 = 0x94E2D5u.toInt(),
+                            ansi7 = 0xBAC2DEu.toInt(),
+                            ansi8 = 0x585B70u.toInt(),
+                            ansi9 = 0xF38BA8u.toInt(),
+                            ansi10 = 0xA6E3A1u.toInt(),
+                            ansi11 = 0xF9E2AFu.toInt(),
+                            ansi12 = 0x89B4FAu.toInt(),
+                            ansi13 = 0xF5C2E7u.toInt(),
+                            ansi14 = 0x94E2D5u.toInt(),
+                            ansi15 = 0xA6ADC8u.toInt(),
+                        ),
                 )
 
-            bridge = TorvoxBridge(config)
+            bridge = createBridge(config)
 
             val windowPtr = getNativeWindowPtr(surface)
             bridge?.setNativeWindow(windowPtr)
@@ -88,11 +115,16 @@ class TorvoxRuntime
                 }
         }
 
+        fun writeToPty(data: ByteArray) {
+            bridge?.writeToPty(data)
+        }
+
         fun stop() {
             running = false
             renderThread?.join(1000)
             renderThread = null
             bridge?.releaseSurface()
+            bridge?.close()
             bridge = null
             _state.value = RuntimeState()
         }
